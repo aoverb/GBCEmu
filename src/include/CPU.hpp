@@ -1,18 +1,16 @@
 // src/CPU.h
-#ifndef CPU_H
-#define CPU_H
+#pragma once
 
-#include "Memory.hpp"
-
+namespace GBCEmu {
 class CPU {
 public:
-    CPU(Memory& memory);
+    CPU();
     ~CPU();
 
-    void executeNextInstruction();
+    bool step();
     bool shouldExit() const;
 
-private:
+protected:
     // 寄存器
     uint8_t A, F;
     uint8_t B, C;
@@ -20,12 +18,10 @@ private:
     uint8_t H, L;
     uint16_t SP, PC;
 
-    Memory& memory;
     bool exitFlag;
 
     // 私有方法
     void reset();
     void fetchAndExecute();
 };
-
-#endif // CPU_H
+}
