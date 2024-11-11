@@ -1,5 +1,6 @@
 // src/CPU.h
 #pragma once
+#include "Common.hpp"
 
 namespace GBCEmu {
 class CPU {

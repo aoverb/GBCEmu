@@ -18,24 +18,9 @@ Emulator::~Emulator()
 }
 
 
-bool Emulator::loadROM(const std::string& path)
+void Emulator::loadROM(const std::string& path)
 {
-    std::ifstream romFile(path, std::ios::binary | std::ios::ate);
-    if (!romFile.is_open()) {
-        std::cerr << "Failed to open ROM" << path << "\n";
-        return false;
-    }
-
-    std::streamsize size = romFile.tellg();
-    romFile.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(size);
-    if (!romFile.read(buffer.data(), size)) {
-        std::cerr << "Load ROM file failed! " << path << "\n";
-        return false;
-    }
-
-    return true;
+    cartridge_.load(path);
 }
 
 int Emulator::run(int argc, char* argv[])
@@ -48,18 +33,21 @@ int Emulator::run(int argc, char* argv[])
     }
 
     std::string romPath = argv[1];
-    Emulator emulator;
 
-    if (!emulator.loadROM(romPath)) {
-        std::cerr << "Failed to load ROM: " << romPath << "\n";
+    try {
+        loadROM(romPath);
+    } catch (std::exception ex) {
+        std::cerr << "Emulator::run catches exception: " << ex.what() << "\n";
         return -2;
     }
+    
 
     // 主循环示例
     bool running = true;
     while (running) {
         if (!cpu_.step()) {
             std::cerr << "cpu failed" << "\n";
+            break;
         }
 
         // 更新其他模块

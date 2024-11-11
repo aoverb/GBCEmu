@@ -1,5 +1,11 @@
 #pragma once
 #include <stdint.h>
+#include <string>
+#include <exception>
+#include <vector>
+#include <iostream>
+
+#define NO_IMPL std::cout << "NOT IMPLEMENTED" << std::endl; exit(-5);
 
 namespace GBCEmu {
 inline int getBit(uint64_t n, uint64_t digit)

@@ -1,5 +1,7 @@
 #include "Common.hpp"
 
+namespace GBCEmu {
+
 class Cartridge {
 public:
     typedef struct {
@@ -17,7 +19,18 @@ public:
         uint8_t checksum;
         uint16_t global_checksum;
     } header;
-
-    Cartridge();
-    ~Cartridge();
+    Cartridge() {};
+    ~Cartridge() {};
+    void load(const std::string& filePath);
+    uint8_t read(uint16_t addr);
+    void write(uint16_t addr, uint8_t val);
+protected:
+    std::string getLicCode(uint8_t code);
+    std::string getROMType(uint8_t code);
+    header* header_;
+    std::vector<char> romData_;
 };
+
+static_assert(sizeof(Cartridge::header) == 0x50, "Header size incorrect");
+
+}
