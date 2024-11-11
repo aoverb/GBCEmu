@@ -6,7 +6,7 @@
 namespace GBCEmu {
 
 // 构造函数
-Emulator::Emulator() : cpu_()
+Emulator::Emulator() : bus_(cartridge_), cpu_(bus_)
 {
     // 初始化其他模块
 }
@@ -17,8 +17,12 @@ Emulator::~Emulator()
     // 清理资源
 }
 
+void Emulator::cycle(uint16_t cycles)
+{
+    // todo...
+}
 
-void Emulator::loadROM(const std::string& path)
+void Emulator::loadROM(const std::string &path)
 {
     cartridge_.load(path);
 }
@@ -55,10 +59,6 @@ int Emulator::run(int argc, char* argv[])
         // 渲染图形
         // 处理音频
 
-        // 简单退出条件（可根据需要调整）
-        if (cpu_.shouldExit()) {
-            running = false;
-        }
     }
     std::cout << "Emulator exit\n";
 }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <SDL.h>
 #include "CPU.hpp"
+#include "Bus.hpp"
 #include "Cartridge.hpp"
 
 namespace GBCEmu {
@@ -20,12 +21,14 @@ public:
     Emulator();
     ~Emulator();
 
+    void cycle(uint16_t cycles);
     void loadROM(const std::string& path);
     int run(int argc, char* argv[]);
     static EmuContext& getContext();
     static EmuContext context_;
 protected:
     CPU cpu_;
+    Bus bus_;
     Cartridge cartridge_;
     // SDL2 相关成员
     ::SDL_Window* window_;
