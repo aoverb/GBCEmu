@@ -14,7 +14,7 @@ enum class RegType {
 };
 
 enum class InstType {
-    NOP, LD, INC, DEC, RLCA, ADD, RRCA, STOP, RLA, JR, RRA, DAA, CPL, SCF, HALT, ADC, SUB, SBC, AND, XOR, OR, CP, POP, JP, PUSH, RET, CB, CALL, RETI, LDH, JPHL, DI, EI, RST, ERR,
+    NONE = 0, NOP, LD, INC, DEC, RLCA, ADD, RRCA, STOP, RLA, JR, RRA, DAA, CPL, SCF, CCF, HALT, ADC, SUB, SBC, AND, XOR, OR, CP, POP, JP, PUSH, RET, CB, CALL, RETI, LDH, JPHL, DI, EI, RST, ERR,
     RLC, RRC, RL, RR, SLA, SRA, SWAP, SBL, BIT, RES, SET
 };
 enum class CondType {NONE, NZ, Z, NC, C};

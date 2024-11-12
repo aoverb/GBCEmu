@@ -4,7 +4,56 @@
 #include <utility>
 
 namespace GBCEmu {
-// 构造函数
+
+namespace Processor {
+
+static bool checkCond(CPUContext& context)
+{
+    bool z = context.getZFlag();
+    bool c = context.getCFlag();
+
+    switch (context.curInst_.cond) {
+        case CondType::NONE: return true;
+        case CondType::C: return c;
+        case CondType::NC: return !c;
+        case CondType::Z: return z;
+        case CondType::NZ: return !z;
+    }
+
+    return false;
+}
+
+static void nop(CPUContext& context)
+{
+    return;
+}
+
+static void ld(CPUContext& context)
+{
+    context.writeReg(context.curInst_.reg1, context.fetchedData_);
+}
+
+static void di(CPUContext& context)
+{
+    context.interruptEnabled_ = false;
+}
+
+static void jp(CPUContext& context)
+{
+    if (checkCond(context)) {
+        context.pc_ = context.fetchedData_;
+        // emu_.cycle(1);
+    }
+}
+
+const std::unordered_map<InstType, ProcFun> PROCESSOR = {
+    {InstType::NOP, nop},
+    {InstType::LD, ld},
+    {InstType::JP, jp},
+    {InstType::DI, di},
+};
+}
+
 
 // 析构函数
 CPU::~CPU() {}
@@ -12,18 +61,84 @@ CPU::~CPU() {}
 // 重置 CPU
 void CPU::reset()
 {
-    a_ = f_ = 0;
-    b_ = c_ = d_ = e_ = h_ = l_ = 0;
-    sp_ = 0xFFFE; // 初始化堆栈指针
-    pc_ = 0x0100; // 游戏开始执行地址
-    halt_ = false;
+    context_.a_ = context_.f_ = 0;
+    context_.b_ = context_.c_ = context_.d_ = context_.e_ = context_.h_ = context_.l_ = 0;
+    context_.sp_ = 0xFFFE; // 初始化堆栈指针
+    context_.pc_ = 0x0100; // 游戏开始执行地址
+    context_.halt_ = false;
+    context_.interruptEnabled_ = true;
 }
+
+
+char *inst_lookup[] = {
+    "<NONE>",
+    "NOP",
+    "LD",
+    "INC",
+    "DEC",
+    "RLCA",
+    "ADD",
+    "RRCA",
+    "STOP",
+    "RLA",
+    "JR",
+    "RRA",
+    "DAA",
+    "CPL",
+    "SCF",
+    "CCF",
+    "HALT",
+    "ADC",
+    "SUB",
+    "SBC",
+    "AND",
+    "XOR",
+    "OR",
+    "CP",
+    "POP",
+    "JP",
+    "PUSH",
+    "RET",
+    "CB",
+    "CALL",
+    "RETI",
+    "LDH",
+    "JPHL",
+    "DI",
+    "EI",
+    "RST",
+    "IN_ERR",
+    "IN_RLC", 
+    "IN_RRC",
+    "IN_RL", 
+    "IN_RR",
+    "IN_SLA", 
+    "IN_SRA",
+    "IN_SWAP", 
+    "IN_SRL",
+    "IN_BIT", 
+    "IN_RES", 
+    "IN_SET"
+};
+
 
 void CPU::fetchInst()
 {
+    FUNC_TRACE("CPU::fetchInst");
     try {
-        curOpcode_ = bus_.read(pc_++);
-        curInst_ = ::std::move(getInstructionByOpCode(curOpcode_));
+        context_.curOpcode_ = bus_.read(context_.pc_);
+        context_.curInst_ = ::std::move(getInstructionByOpCode(context_.curOpcode_));
+        std::cout << context_.pc_ << "\t Opcode:" << inst_lookup[static_cast<int>(context_.curInst_.type)] <<
+            " " << (int)bus_.read(context_.pc_) <<
+            " " << (int)bus_.read(context_.pc_ + 1) <<
+            " " << (int)bus_.read(context_.pc_ + 2) << "\t"
+            << "A " << (int)context_.a_ << "\t"
+            << "B " << (int)context_.b_ << "\t"
+            << "C " << (int)context_.c_ << "\t"
+            << "D " << (int)context_.d_ << "\t"
+            << "SP " << context_.sp_ << "\n";
+        ++context_.pc_;
+        
     } catch (std::exception ex) {
         std::cerr << "CPU::fetchInst catches exception: " << ex.what() << "\n";
     } catch (...) {
@@ -31,26 +146,36 @@ void CPU::fetchInst()
     }
 }
 
+// 根据寻址模式准备好数据
 void CPU::fetchData()
 {
+    FUNC_TRACE("CPU::fetchData");
     uint16_t low, high;
-    switch(curInst_.mode) {
+    switch(context_.curInst_.mode) {
         case AddrMode::IMP: return;
         case AddrMode::R:
-            fetchedData_ = readReg(curInst_.reg1);
+            context_.fetchedData_ = context_.readReg(context_.curInst_.reg1);
             return;
         case AddrMode::R_D8:
-            fetchedData_ = bus_.read(pc_);
+            context_.fetchedData_ = bus_.read(context_.pc_);
             // emu_.cycle(1);
-            ++pc_;
+            ++context_.pc_;
+            return;
+        case AddrMode::R_D16:
+            low = bus_.read(context_.pc_);
+            // emu_.cycle(1);
+            high = bus_.read(context_.pc_ + 1);
+            // emu_.cycle(1);
+            context_.fetchedData_ = low | (high << 8);
+            context_.pc_ += 2;
             return;
         case AddrMode::D16:
-            low = bus_.read(pc_);
+            low = bus_.read(context_.pc_);
             // emu_.cycle(1);
-            high = bus_.read(pc_ + 1);
+            high = bus_.read(context_.pc_ + 1);
             // emu_.cycle(1);
-            fetchedData_ = low | (high << 8);
-            pc_ += 2;
+            context_.fetchedData_ = low | (high << 8);
+            context_.pc_ += 2;
             return;
         case AddrMode::R_R:
             
@@ -60,30 +185,30 @@ void CPU::fetchData()
     }
 }
 
-uint16_t CPU::readReg(RegType reg)
+ProcFun CPU::getProcessor(InstType& instType)
 {
-    switch(reg) {
-        case RegType::A: return a_;
-        case RegType::B: return b_;
-        case RegType::C: return c_;
-        case RegType::D: return d_;
-        case RegType::E: return e_;
-        case RegType::F: return f_;
-        case RegType::H: return h_;
-        case RegType::L: return l_;
-    }    
+    auto it = Processor::PROCESSOR.find(instType);
+    if(it != Processor::PROCESSOR.end()) {
+        return it->second;
+    }
+    throw std::runtime_error("failed to find processor of instType:" + static_cast<int>(instType));
 }
 
 void CPU::execute()
 {
-    std::cout << "opcode: " << std::hex << (int)curOpcode_ << "\t" << "pc:" << pc_ << "\n";
-    std::cout << "no execution...\n";
+    FUNC_TRACE("CPU::execute");
+    try {
+        getProcessor(context_.curInst_.type)(context_);
+    } catch (std::exception ex) {
+        std::cerr << "CPU::execute catches exception: " << ex.what() << "\n";
+    }
+    
 }
 
 // 执行下一条指令
 bool CPU::step()
 {
-    if (!halt_) {
+    if (!context_.halt_) {
         fetchInst();
         fetchData();
         execute();

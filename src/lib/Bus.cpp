@@ -23,6 +23,7 @@ namespace GBCEmu {
     }
     uint8_t Bus::read(uint16_t addr)
     {
+        TRACE("Bus::read, addr: " << std::hex << addr);
         if (addr < 0x8000) {
             return cart_.read(addr);
         }

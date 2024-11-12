@@ -4,10 +4,28 @@
 #include <exception>
 #include <vector>
 #include <iostream>
+#include <unordered_map>
 
 #define NO_IMPL std::cout << "NOT IMPLEMENTED" << std::endl; exit(-5);
 
 namespace GBCEmu {
+
+class logHelper {
+public:
+    logHelper(std::string funcName) : funcName_(funcName){
+        // std::cout << funcName_ << " Entered...\n";
+    }
+    ~logHelper(){
+        // std::cout << funcName_ << " Exited...\n";
+    }
+private:
+    std::string funcName_;
+};
+
+#define FUNC_TRACE(funcName) logHelper log(funcName);
+#define TRACE(log) while(0);
+
+
 inline int getBit(uint64_t n, uint64_t digit)
 {
     return n & (1 << digit) ? 1 : 0;
