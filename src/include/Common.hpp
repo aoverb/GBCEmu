@@ -31,7 +31,16 @@ inline int getBit(uint64_t n, uint64_t digit)
     return n & (1 << digit) ? 1 : 0;
 }
 
-inline void setBit(uint64_t& n, uint64_t digit, bool val)
+inline void setBit(uint16_t& n, uint64_t digit, bool val)
+{
+    if (val) {
+        n |= (1 << digit);
+    } else {
+        n &= ~(1 << digit);
+    }
+}
+
+inline void setBit(uint8_t& n, uint64_t digit, bool val)
 {
     if (val) {
         n |= (1 << digit);

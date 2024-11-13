@@ -6,7 +6,7 @@
 namespace GBCEmu {
 
 enum class AddrMode {
-    R_D16, R_R, MR_R, R, R_D8, R_MR, R_HLI, R_HLD, HLI_R, HLD_R, R_A8, A8_R, HL_SPR, D16, D8, IMP, D16_R, MR_D8, MR, A16_R, R_A16
+    R_D16, R_R, MR_R, R_MC, MC_R, R, R_D8, R_MR, R_HLI, R_HLD, HLI_R, HLD_R, R_A8, A8_R, HL_SPR, D16, D8, IMP, D16_R, MR_D8, MR, A16_R, R_A16
 };
 
 enum class RegType {

@@ -37,4 +37,9 @@ namespace GBCEmu {
         }
         NO_IMPL
     }
+    void Bus::write16(uint16_t addr, uint16_t val)
+    {
+        write(addr, val & 0xFF);
+        write(addr + 1, (val >> 8) & 0xFF);
+    }
 }
