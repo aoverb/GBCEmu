@@ -36,7 +36,19 @@ static void ld(CPUContext& context)
         } else {
             context.bus_.write(context.memoDest_, context.fetchedData_);
         }
-        
+        context.writeToMemo_ = false;
+        return;
+    }
+
+    if (context.curInst_.mode == AddrMode::HL_SPR) {
+        uint8_t hFlag = (context.readReg(context.curInst_.reg1) & 0xF) +
+            (context.readReg(context.curInst_.reg2) & 0xF) >= 0x10;
+        uint8_t cFlag = (context.readReg(context.curInst_.reg1) & 0xFF) +
+            (context.readReg(context.curInst_.reg2) & 0xFF) >= 0x100;
+        context.setFlags(0, 0, hFlag, cFlag);
+        context.writeReg(context.curInst_.reg1, context.readReg(context.curInst_.reg2) +
+            static_cast<int8_t>(context.fetchedData_));
+        return;
     }
     context.writeReg(context.curInst_.reg1, context.fetchedData_);
 }
@@ -140,6 +152,19 @@ void CPUContext::fetchData()
         case AddrMode::A8_R:
             memoDest_ = bus_.read(pc_);
             fetchedData_ = readReg(curInst_.reg2);
+            writeToMemo_ = true;
+            // emu_.cycle(1);
+            ++pc_;
+            return;
+        case AddrMode::R_HA8:
+            fetchedData_ = 0xFF00 | bus_.read(bus_.read(pc_));
+            // emu_.cycle(1);
+            ++pc_;
+            return;
+        case AddrMode::HA8_R:
+            memoDest_ = 0xFF00 | bus_.read(pc_);
+            fetchedData_ = readReg(curInst_.reg2);
+            writeToMemo_ = true;
             // emu_.cycle(1);
             ++pc_;
             return;
@@ -149,6 +174,7 @@ void CPUContext::fetchData()
             high = bus_.read(pc_ + 1);
             // emu_.cycle(1);
             memoDest_ = low | (high << 8);
+            writeToMemo_ = true;
             fetchedData_ = readReg(curInst_.reg2);
             pc_ += 2;
             return;

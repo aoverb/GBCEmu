@@ -27,7 +27,15 @@ namespace GBCEmu {
         if (addr < 0x8000) {
             return cart_.read(addr);
         }
-        NO_IMPL
+        std::cerr << "Bus::read\n";
+    }
+    uint16_t Bus::read16(uint16_t addr)
+    {
+        TRACE("Bus::read, addr: " << std::hex << addr);
+        if (addr < 0x8000) {
+            return cart_.read(addr);
+        }
+        std::cerr << "Bus::read\n";
     }
     void Bus::write(uint16_t addr, uint8_t val)
     {
@@ -35,7 +43,7 @@ namespace GBCEmu {
             cart_.write(addr, val);
             return;
         }
-        NO_IMPL
+        std::cerr << "Bus::write\n";
     }
     void Bus::write16(uint16_t addr, uint16_t val)
     {

@@ -101,7 +101,15 @@ const std::unordered_map<uint8_t, Instruction> INSTRCUTION_SET = {
     {0xAF, {InstType::XOR, AddrMode::R, RegType::A}},
     {0xC3, {InstType::JP, AddrMode::D16}},
     {0xCD, {InstType::LD, AddrMode::R_D16, RegType::PC}},
-    {0xF3, {InstType::DI, AddrMode::IMP}}
+    {0xE0, {InstType::LD, AddrMode::R_HA8, RegType::A}},
+    {0xE2, {InstType::LD, AddrMode::MC_R, RegType::C, RegType::A}},
+    {0xEA, {InstType::LD, AddrMode::A16_R, RegType::NONE, RegType::A}},
+    {0xF0, {InstType::LD, AddrMode::HA8_R, RegType::NONE, RegType::A}},
+    {0xF2, {InstType::LD, AddrMode::R_MC, RegType::A, RegType::C}},
+    {0xF3, {InstType::DI, AddrMode::IMP}},
+    {0xFA, {InstType::LD, AddrMode::R_A16, RegType::A}},
+    {0xF8, {InstType::LD, AddrMode::R_R, RegType::HL, RegType::SP}},
+    {0xF9, {InstType::LD, AddrMode::R_R, RegType::SP, RegType::HL}}
 };
 
 Instruction getInstructionByOpCode(uint8_t opCode) {
