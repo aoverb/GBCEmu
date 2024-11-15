@@ -10,7 +10,7 @@ enum class AddrMode {
 };
 
 enum class RegType {
-    NONE, A, F, B, C, D, E, H, L, AF, BC, DE, HL, SP, PC
+    NONE, A, F, B, C, D, E, H, L, AF, BC, DE, HL, SP, PC, IE
 };
 
 enum class InstType {

@@ -14,7 +14,7 @@
 // 0xFF00 - 0xFF7F : I/O Registers
 
 namespace GBCEmu {
-    Bus::Bus(Cartridge& cart) : cart_(cart)
+    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg) : cart_(cart), ram_(ram), reg_(reg)
     {
     }
 
@@ -26,8 +26,27 @@ namespace GBCEmu {
         TRACE("Bus::read, addr: " << std::hex << addr);
         if (addr < 0x8000) {
             return cart_.read(addr);
+        } else if (addr < 0xA000) {
+            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+        } else if (addr < 0xC000) {
+            return cart_.read(addr);
+        } else if (addr < 0xE000) {
+            return ram_.readWRAM(addr);
+        } else if (addr < 0xFE00) {
+            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+        } else if (addr < 0xFEA0) {
+            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+            return 0;
+        } else if (addr < 0xFF00) {
+            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+
+        } else if (addr < 0xFF80) {
+            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+        } else if (addr == 0xFFFF) {
+            return reg_.ie_;
+        } else {
+            ram_.readHRAM(addr);
         }
-        std::cerr << "Bus::read\n";
     }
     uint16_t Bus::read16(uint16_t addr)
     {
@@ -39,11 +58,30 @@ namespace GBCEmu {
     }
     void Bus::write(uint16_t addr, uint8_t val)
     {
+        // std::cout << "Bus::write addr: " << std::hex << addr << "\n";
         if (addr < 0x8000) {
             cart_.write(addr, val);
             return;
+        } else if (addr < 0xA000) {
+            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+        } else if (addr < 0xC000) {
+            cart_.write(addr, val);
+        } else if (addr < 0xE000) {
+            ram_.writeWRAM(addr, val);
+            return;
+        } else if (addr < 0xFE00) {
+            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+        } else if (addr < 0xFEA0) {
+            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+        } else if (addr < 0xFF00) {
+            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+        } else if (addr < 0xFF80) {
+            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+        } else if (addr == 0xFFFF) {
+            reg_.ie_ = val;
+        } else  {
+            ram_.writeHRAM(addr, val);
         }
-        std::cerr << "Bus::write\n";
     }
     void Bus::write16(uint16_t addr, uint16_t val)
     {

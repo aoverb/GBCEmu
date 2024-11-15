@@ -27,6 +27,7 @@ public:
     static EmuContext& getContext();
     static EmuContext context_;
 protected:
+    CPURegister reg_;
     CPU cpu_;
     Bus bus_;
     RAM ram_;
