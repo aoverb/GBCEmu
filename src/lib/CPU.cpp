@@ -54,17 +54,89 @@ static void ld(CPUContext& context)
     context.reg_.writeReg(context.curInst_.reg1, context.fetchedData_);
 }
 
+static uint8_t stackPop(CPUContext& context)
+{
+    return context.bus_.read(context.reg_.sp_++);
+}
+
+static uint16_t stackPop16(CPUContext& context)
+{
+    uint16_t lo;
+    lo = stackPop(context);
+    uint16_t hi;
+    hi = stackPop(context);
+    return (hi << 8) | lo;
+}
+
+static void stackPush(CPUContext& context, uint8_t val)
+{
+    context.bus_.write(--context.reg_.sp_, val);
+}
+
+static void stackPush16(CPUContext& context, uint16_t val)
+{
+    stackPush(context, (val >> 8) & 0xFF);
+    stackPush(context, val & 0xFF);
+}
+
 static void di(CPUContext& context)
 {
     context.interruptEnabled_ = false;
 }
 
-static void jp(CPUContext& context)
+static void go2(CPUContext& context, uint16_t addr, bool pushPC)
 {
     if (checkCond(context)) {
-        context.reg_.pc_ = context.fetchedData_;
+        if (pushPC) {
+            stackPush16(context, context.reg_.pc_);
+        }
+        context.reg_.pc_ = addr;
         // emu_.cycle(1);
     }
+}
+
+static void jp(CPUContext& context)
+{
+    go2(context, context.fetchedData_, false);
+}
+
+static void ret(CPUContext& context)
+{
+    if (context.curInst_.cond != CondType::NONE) {
+        // emu_cycle
+    }
+
+    if (checkCond(context)) {
+        uint16_t lo;
+        lo = stackPop(context);
+        uint16_t hi;
+        hi = stackPop(context);
+        uint16_t res = (hi << 8) | lo;
+        context.reg_.pc_ = res;
+    }
+}
+
+
+static void reti(CPUContext& context)
+{
+    context.interruptEnabled_ = true;
+    ret(context);
+}
+
+static void call(CPUContext& context)
+{
+    go2(context, context.fetchedData_, true);
+}
+
+static void rst(CPUContext& context)
+{
+    go2(context, context.curInst_.param, true);
+}
+
+static void jr(CPUContext& context)
+{
+    uint16_t addr = context.reg_.pc_ + static_cast<int8_t>(context.fetchedData_ & 0xFF);
+    go2(context, addr, true);
 }
 
 static void xor(CPUContext& context)
@@ -73,12 +145,40 @@ static void xor(CPUContext& context)
     context.reg_.setFlags(context.reg_.a_, 0, 0, 0);
 }
 
+static void pop(CPUContext& context)
+{
+    uint16_t lo;
+    lo = stackPop(context);
+    uint16_t hi;
+    hi = stackPop(context);
+    uint16_t res = (hi << 8) | lo;
+    context.reg_.writeReg(context.curInst_.reg1,
+        res & (context.curInst_.reg1 == RegType::AF ? 0xFFF0 : 0xFFFF));
+}
+
+static void push(CPUContext& context)
+{
+    uint16_t hi;
+    hi = (context.reg_.readReg(context.curInst_.reg1) >> 8) & 0xFF;
+    stackPush(context, hi);
+    uint16_t lo;
+    lo = hi = context.reg_.readReg(context.curInst_.reg1) & 0xFF;
+    stackPush(context, lo);
+}
+
 const std::unordered_map<InstType, ProcFun> PROCESSOR = {
     {InstType::NOP, nop},
     {InstType::LD, ld},
     {InstType::JP, jp},
+    {InstType::JR, jr},
+    {InstType::CALL, call},
     {InstType::DI, di},
-    {InstType::XOR, xor}
+    {InstType::XOR, xor},
+    {InstType::POP, pop},
+    {InstType::PUSH, push},
+    {InstType::RET, ret},
+    {InstType::RETI, reti},
+    {InstType::RST, rst}
 };
 }
 

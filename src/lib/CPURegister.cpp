@@ -47,11 +47,15 @@ namespace GBCEmu {
             case RegType::F: return f_;
             case RegType::H: return h_;
             case RegType::L: return l_;
+            case RegType::BC: return (b_ << 8) | b_;
+            case RegType::DE: return (d_ << 8) | e_;
             case RegType::HL: return (h_ << 8) | l_;
+            case RegType::AF: return (a_ << 8) | f_;
             case RegType::SP: return sp_;
             case RegType::PC: return pc_;
             case RegType::IE: return ie_;
-        }    
+        }
+        throw std::out_of_range("unknow writeReg type");
     }
 
     void CPURegister::writeReg(RegType reg, uint16_t val)
@@ -65,10 +69,14 @@ namespace GBCEmu {
             case RegType::F: f_ = val & 0xFF; return;
             case RegType::H: h_ = val & 0xFF; return;
             case RegType::L: l_ = val & 0xFF; return;
+            case RegType::BC: b_ = (val & 0xFF00) >> 8; c_ = val & 0xFF; return;
+            case RegType::DE: d_ = (val & 0xFF00) >> 8; e_ = val & 0xFF; return;
             case RegType::HL: h_ = (val & 0xFF00) >> 8; l_ = val & 0xFF; return;
+            case RegType::AF: a_ = (val & 0xFF00) >> 8; f_ = val & 0xFF; return;
             case RegType::SP: sp_ = val; return;
             case RegType::PC: pc_ = val; return;
             case RegType::IE: ie_ = val & 0xFF; return;
-        }    
+        }
+        throw std::out_of_range("unknow writeReg type");
     }
 };

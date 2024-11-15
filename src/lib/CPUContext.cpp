@@ -24,6 +24,10 @@ void CPUContext::fetchData()
             writeToMemo_ = true;
             fetchedData_ = reg_.readReg(curInst_.reg1);
             return;
+        case AddrMode::D8:
+            fetchedData_ = bus_.read(reg_.pc_);
+            ++reg_.pc_;
+            return;
         case AddrMode::MR_D8:
             fetchedData_ = bus_.read(reg_.pc_);
             ++reg_.pc_;
