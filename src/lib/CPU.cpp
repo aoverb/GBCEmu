@@ -32,7 +32,7 @@ static void nop(CPUContext& context)
 static void ld(CPUContext& context)
 {
     if (context.writeToMemo_) {
-        if (context.curInst_.reg2 == RegType::AF) {
+        if (is16bitReg(context.curInst_.reg2)) {
             context.bus_.write16(context.memoDest_, context.fetchedData_);
         } else {
             context.bus_.write(context.memoDest_, context.fetchedData_);
@@ -52,6 +52,46 @@ static void ld(CPUContext& context)
         return;
     }
     context.reg_.writeReg(context.curInst_.reg1, context.fetchedData_);
+}
+
+static void inc(CPUContext& context)
+{
+    if (is16bitReg(context.curInst_.reg1)) {
+        // ... emu
+    }
+    uint16_t val = context.reg_.readReg(context.curInst_.reg1) + 1;
+    if (context.writeToMemo_) {
+        val = context.bus_.read(context.fetchedData_) & 0xFF + 1;
+        context.bus_.write(context.fetchedData_, val);
+    } else {
+        context.reg_.writeReg(context.curInst_.reg1, val);
+    }
+
+    if (context.curOpcode_ & 0x03 == 0x03) {
+        return;
+    }
+
+    context.reg_.setFlags(val == 0, 0, (val & 0x0F) == 0, -1);
+}
+
+static void dec(CPUContext& context)
+{
+    if (is16bitReg(context.curInst_.reg1)) {
+        // ... emu
+    }
+    uint16_t val = context.reg_.readReg(context.curInst_.reg1) - 1;
+    if (context.writeToMemo_) {
+        val = context.bus_.read(context.fetchedData_) & 0xFF - 1;
+        context.bus_.write(context.fetchedData_, val);
+    } else {
+        context.reg_.writeReg(context.curInst_.reg1, val);
+    }
+
+    if (context.curOpcode_ & 0x0B == 0x0B) {
+        return;
+    }
+
+    context.reg_.setFlags(val == 0, 1, (val & 0x0F) == 0x0F, -1);
 }
 
 static uint8_t stackPop(CPUContext& context)
@@ -116,7 +156,6 @@ static void ret(CPUContext& context)
     }
 }
 
-
 static void reti(CPUContext& context)
 {
     context.interruptEnabled_ = true;
@@ -178,7 +217,9 @@ const std::unordered_map<InstType, ProcFun> PROCESSOR = {
     {InstType::PUSH, push},
     {InstType::RET, ret},
     {InstType::RETI, reti},
-    {InstType::RST, rst}
+    {InstType::RST, rst},
+    {InstType::INC, inc},
+    {InstType::DEC, dec}
 };
 }
 
