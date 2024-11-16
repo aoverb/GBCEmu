@@ -4,6 +4,10 @@ namespace GBCEmu {
 CPUContext::CPUContext(Bus& bus, CPURegister& reg) : bus_(bus), reg_(reg) {
     PROCESSOR_[InstType::NOP] = [this]() { this->nop(); };
     PROCESSOR_[InstType::LD] = [this]() { this->ld(); };
+    PROCESSOR_[InstType::ADD] = [this]() { this->add(); };
+    PROCESSOR_[InstType::ADC] = [this]() { this->adc(); };
+    PROCESSOR_[InstType::SUB] = [this]() { this->sub(); };
+    PROCESSOR_[InstType::SBC] = [this]() { this->sbc(); };
     PROCESSOR_[InstType::INC] = [this]() { this->inc(); };
     PROCESSOR_[InstType::DEC] = [this]() { this->dec(); };
     PROCESSOR_[InstType::DI] = [this]() { this->di(); };
@@ -72,13 +76,13 @@ void CPUContext::inc()
     }
     uint16_t val = reg_.readReg(curInst_.reg1) + 1;
     if (writeToMemo_) {
-        val = bus_.read(fetchedData_) & 0xFF + 1;
+        val = (bus_.read(fetchedData_) & 0xFF) + 1;
         bus_.write(fetchedData_, val);
     } else {
         reg_.writeReg(curInst_.reg1, val);
     }
 
-    if (curOpcode_ & 0x03 == 0x03) {
+    if ((curOpcode_ & 0x03) == 0x03) {
         return;
     }
 
@@ -92,13 +96,13 @@ void CPUContext::dec()
     }
     uint16_t val = reg_.readReg(curInst_.reg1) - 1;
     if (writeToMemo_) {
-        val = bus_.read(fetchedData_) & 0xFF - 1;
+        val = (bus_.read(fetchedData_) & 0xFF) - 1;
         bus_.write(fetchedData_, val);
     } else {
         reg_.writeReg(curInst_.reg1, val);
     }
 
-    if (curOpcode_ & 0x0B == 0x0B) {
+    if ((curOpcode_ & 0x0B) == 0x0B) {
         return;
     }
 
@@ -185,8 +189,9 @@ void CPUContext::rst()
 
 void CPUContext::jr()
 {
-    uint16_t addr = reg_.pc_ + static_cast<int8_t>(fetchedData_ & 0xFF);
-    go2(addr, true);
+    char rel = static_cast<char>(fetchedData_ & 0xFF);
+    uint16_t addr = reg_.pc_ + rel;
+    go2(addr, false);
 }
 
 void CPUContext::xor()
@@ -212,8 +217,73 @@ void CPUContext::push()
     hi = (reg_.readReg(curInst_.reg1) >> 8) & 0xFF;
     stackPush(hi);
     uint16_t lo;
-    lo = hi = reg_.readReg(curInst_.reg1) & 0xFF;
+    lo = reg_.readReg(curInst_.reg1) & 0xFF;
     stackPush(lo);
+}
+
+void CPUContext::add()
+{
+    uint16_t val = reg_.readReg(curInst_.reg1) + fetchedData_;
+    bool is16bit = is16bitReg(curInst_.reg1);
+    if (is16bit) {
+        // emu...
+    }
+
+    if (curInst_.reg1 == RegType::SP) {
+        val = reg_.readReg(curInst_.reg1) + static_cast<int8_t>(fetchedData_);
+    }
+
+    int z = (val & 0xFF) == 0;
+    int h = ((reg_.readReg(curInst_.reg1) & 0xF) + (fetchedData_ & 0xF)) >= 0x10;
+    int c = (static_cast<int>(reg_.readReg(curInst_.reg1) & 0xFF) + static_cast<int>(fetchedData_ & 0xFF)) >= 0x100;
+    if (is16bit) {
+        z = -1;
+        h = ((reg_.readReg(curInst_.reg1) & 0xFFF) + (static_cast<int8_t>(fetchedData_) & 0xFFF)) >= 0x1000;
+        c = (static_cast<uint32_t>(reg_.readReg(curInst_.reg1) & 0xFFFF) + static_cast<uint32_t>(fetchedData_ & 0xFFFF)) >= 0x10000;
+    }
+
+    if (curInst_.reg1 == RegType::SP) {
+        z = 0;
+        h = ((reg_.readReg(curInst_.reg1) & 0xF) + (static_cast<int8_t>(fetchedData_) & 0xF)) >= 0x10;
+        c = (static_cast<uint16_t>(reg_.readReg(curInst_.reg1) & 0xFF) + static_cast<uint16_t>(fetchedData_ & 0xFF)) >= 0x100;
+    }
+
+    reg_.writeReg(curInst_.reg1, val & 0xFFFF);
+    reg_.setFlags(z, 0, h, c);
+}
+
+void GBCEmu::CPUContext::sub()
+{
+    uint16_t val = reg_.readReg(curInst_.reg1) - fetchedData_;
+
+    int z = val == 0;
+    int h = ((static_cast<int>(reg_.readReg(curInst_.reg1)) & 0xF) - (static_cast<int>(fetchedData_) & 0xF)) < 0;
+    int c = (static_cast<int>(reg_.readReg(curInst_.reg1)) - static_cast<int>(fetchedData_)) < 0;
+
+    reg_.writeReg(curInst_.reg1, val);
+    reg_.setFlags(z, 1, h, c);
+}
+
+void GBCEmu::CPUContext::sbc()
+{
+    uint8_t val = fetchedData_ + reg_.getCFlag();
+
+    int z = (reg_.readReg(curInst_.reg1) - val) == 0;
+    int h = ((static_cast<int>(reg_.readReg(curInst_.reg1)) & 0xF) - (static_cast<int>(fetchedData_) & 0xF) - (static_cast<int>(reg_.getCFlag()))) < 0;
+    int c = (static_cast<int>(reg_.readReg(curInst_.reg1)) - static_cast<int>(fetchedData_)) - reg_.getCFlag() < 0;
+
+    reg_.writeReg(curInst_.reg1, (reg_.readReg(curInst_.reg1) - val));
+    reg_.setFlags(z, 1, h, c);
+}
+
+void GBCEmu::CPUContext::adc()
+{
+    uint16_t u = fetchedData_;
+    uint16_t a = reg_.a_;
+    uint16_t c = reg_.getCFlag();
+
+    reg_.a_ = (a + u + c) & 0xFF;
+    reg_.setFlags(a == 0, 0, (a & 0xF) + (u & 0xF) + c > 0xF, a + u + c > 0xFF);
 }
 
 void CPUContext::process()
@@ -283,6 +353,7 @@ void CPUContext::fetchData()
         case AddrMode::HLD_R:
             fetchedData_ = reg_.readReg(curInst_.reg2);
             memoDest_ = reg_.readReg(RegType::HL);
+            std::cout << "memodest:" << memoDest_ << "\n";
             writeToMemo_ = true;
             reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) - 1);
             return;

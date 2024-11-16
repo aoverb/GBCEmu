@@ -19,7 +19,7 @@ void CPU::reset()
     context_.reg_.a_ = 0x01;
     context_.reg_.f_ = 0;
     context_.reg_.b_ = context_.reg_.c_ = context_.reg_.d_ = context_.reg_.e_ = context_.reg_.h_ = context_.reg_.l_ = 0;
-    context_.reg_.sp_ = 0xFFFE; // 初始化堆栈指针
+    context_.reg_.sp_ = 0x0; // 初始化堆栈指针
     context_.reg_.pc_ = 0x0100; // 游戏开始执行地址
     context_.halt_ = false;
     context_.interruptEnabled_ = true;

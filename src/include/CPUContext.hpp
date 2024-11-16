@@ -28,7 +28,10 @@ public:
     void xor();
     void pop();
     void push();
-
+    void add();
+    void sub();
+    void sbc();
+    void adc();
 
     Bus& bus_;
     CPURegister& reg_;
