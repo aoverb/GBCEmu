@@ -1,14 +1,31 @@
 #include "CPUContext.hpp"
 namespace GBCEmu {
 
+CPUContext::CPUContext(Bus& bus, CPURegister& reg) : bus_(bus), reg_(reg) {
+    PROCESSOR_[InstType::NOP] = [this]() { this->nop(); };
+    PROCESSOR_[InstType::LD] = [this]() { this->ld(); };
+    PROCESSOR_[InstType::INC] = [this]() { this->inc(); };
+    PROCESSOR_[InstType::DEC] = [this]() { this->dec(); };
+    PROCESSOR_[InstType::DI] = [this]() { this->di(); };
+    PROCESSOR_[InstType::JP] = [this]() { this->jp(); };
+    PROCESSOR_[InstType::RET] = [this]() { this->ret(); };
+    PROCESSOR_[InstType::RETI] = [this]() { this->reti(); };
+    PROCESSOR_[InstType::CALL] = [this]() { this->call(); };
+    PROCESSOR_[InstType::RST] = [this]() { this->rst(); };
+    PROCESSOR_[InstType::JR] = [this]() { this->jr(); };
+    PROCESSOR_[InstType::XOR] = [this]() { this->xor(); };
+    PROCESSOR_[InstType::POP] = [this]() { this->pop(); };
+    PROCESSOR_[InstType::PUSH] = [this]() { this->push(); };
+};
+
+
 // 根据寻址模式准备好数据
-
-static bool checkCond(CPUContext& context)
+bool CPUContext::checkCond()
 {
-    bool z = context.reg_.getZFlag();
-    bool c = context.reg_.getCFlag();
+    bool z = reg_.getZFlag();
+    bool c = reg_.getCFlag();
 
-    switch (context.curInst_.cond) {
+    switch (curInst_.cond) {
         case CondType::NONE: return true;
         case CondType::C: return c;
         case CondType::NC: return !c;
@@ -19,203 +36,195 @@ static bool checkCond(CPUContext& context)
     return false;
 }
 
-static void nop(CPUContext& context)
+void CPUContext::nop()
 {
     return;
 }
-
-static void ld(CPUContext& context)
+void CPUContext::ld()
 {
-    if (context.writeToMemo_) {
-        if (is16bitReg(context.curInst_.reg2)) {
-            context.bus_.write16(context.memoDest_, context.fetchedData_);
+    if (writeToMemo_) {
+        if (is16bitReg(curInst_.reg2)) {
+            bus_.write16(memoDest_, fetchedData_);
         } else {
-            context.bus_.write(context.memoDest_, context.fetchedData_);
+            bus_.write(memoDest_, fetchedData_);
         }
-        context.writeToMemo_ = false;
+        writeToMemo_ = false;
         return;
     }
 
-    if (context.curInst_.mode == AddrMode::HL_SPR) {
-        uint8_t hFlag = (context.reg_.readReg(context.curInst_.reg1) & 0xF) +
-            (context.reg_.readReg(context.curInst_.reg2) & 0xF) >= 0x10;
-        uint8_t cFlag = (context.reg_.readReg(context.curInst_.reg1) & 0xFF) +
-            (context.reg_.readReg(context.curInst_.reg2) & 0xFF) >= 0x100;
-        context.reg_.setFlags(0, 0, hFlag, cFlag);
-        context.reg_.writeReg(context.curInst_.reg1, context.reg_.readReg(context.curInst_.reg2) +
-            static_cast<int8_t>(context.fetchedData_));
+    if (curInst_.mode == AddrMode::HL_SPR) {
+        uint8_t hFlag = (reg_.readReg(curInst_.reg1) & 0xF) +
+            (reg_.readReg(curInst_.reg2) & 0xF) >= 0x10;
+        uint8_t cFlag = (reg_.readReg(curInst_.reg1) & 0xFF) +
+            (reg_.readReg(curInst_.reg2) & 0xFF) >= 0x100;
+        reg_.setFlags(0, 0, hFlag, cFlag);
+        reg_.writeReg(curInst_.reg1, reg_.readReg(curInst_.reg2) +
+            static_cast<int8_t>(fetchedData_));
         return;
     }
-    context.reg_.writeReg(context.curInst_.reg1, context.fetchedData_);
+    reg_.writeReg(curInst_.reg1, fetchedData_);
 }
 
-static void inc(CPUContext& context)
+void CPUContext::inc()
 {
-    if (is16bitReg(context.curInst_.reg1)) {
+    if (is16bitReg(curInst_.reg1)) {
         // ... emu
     }
-    uint16_t val = context.reg_.readReg(context.curInst_.reg1) + 1;
-    if (context.writeToMemo_) {
-        val = context.bus_.read(context.fetchedData_) & 0xFF + 1;
-        context.bus_.write(context.fetchedData_, val);
+    uint16_t val = reg_.readReg(curInst_.reg1) + 1;
+    if (writeToMemo_) {
+        val = bus_.read(fetchedData_) & 0xFF + 1;
+        bus_.write(fetchedData_, val);
     } else {
-        context.reg_.writeReg(context.curInst_.reg1, val);
+        reg_.writeReg(curInst_.reg1, val);
     }
 
-    if (context.curOpcode_ & 0x03 == 0x03) {
+    if (curOpcode_ & 0x03 == 0x03) {
         return;
     }
 
-    context.reg_.setFlags(val == 0, 0, (val & 0x0F) == 0, -1);
+    reg_.setFlags(val == 0, 0, (val & 0x0F) == 0, -1);
 }
 
-static void dec(CPUContext& context)
+void CPUContext::dec()
 {
-    if (is16bitReg(context.curInst_.reg1)) {
+    if (is16bitReg(curInst_.reg1)) {
         // ... emu
     }
-    uint16_t val = context.reg_.readReg(context.curInst_.reg1) - 1;
-    if (context.writeToMemo_) {
-        val = context.bus_.read(context.fetchedData_) & 0xFF - 1;
-        context.bus_.write(context.fetchedData_, val);
+    uint16_t val = reg_.readReg(curInst_.reg1) - 1;
+    if (writeToMemo_) {
+        val = bus_.read(fetchedData_) & 0xFF - 1;
+        bus_.write(fetchedData_, val);
     } else {
-        context.reg_.writeReg(context.curInst_.reg1, val);
+        reg_.writeReg(curInst_.reg1, val);
     }
 
-    if (context.curOpcode_ & 0x0B == 0x0B) {
+    if (curOpcode_ & 0x0B == 0x0B) {
         return;
     }
 
-    context.reg_.setFlags(val == 0, 1, (val & 0x0F) == 0x0F, -1);
+    reg_.setFlags(val == 0, 1, (val & 0x0F) == 0x0F, -1);
 }
 
-static uint8_t stackPop(CPUContext& context)
+uint8_t CPUContext::stackPop()
 {
-    return context.bus_.read(context.reg_.sp_++);
+    return bus_.read(reg_.sp_++);
 }
 
-static uint16_t stackPop16(CPUContext& context)
+uint16_t CPUContext::stackPop16()
 {
     uint16_t lo;
-    lo = stackPop(context);
+    lo = stackPop();
     uint16_t hi;
-    hi = stackPop(context);
+    hi = stackPop();
     return (hi << 8) | lo;
 }
 
-static void stackPush(CPUContext& context, uint8_t val)
+void CPUContext::stackPush(uint8_t val)
 {
-    context.bus_.write(--context.reg_.sp_, val);
+    bus_.write(--reg_.sp_, val);
 }
 
-static void stackPush16(CPUContext& context, uint16_t val)
+void CPUContext::stackPush16(uint16_t val)
 {
-    stackPush(context, (val >> 8) & 0xFF);
-    stackPush(context, val & 0xFF);
+    stackPush((val >> 8) & 0xFF);
+    stackPush(val & 0xFF);
 }
 
-static void di(CPUContext& context)
+void CPUContext::di()
 {
-    context.interruptEnabled_ = false;
+    interruptEnabled_ = false;
 }
 
-static void go2(CPUContext& context, uint16_t addr, bool pushPC)
+void CPUContext::go2(uint16_t addr, bool pushPC)
 {
-    if (checkCond(context)) {
+    if (checkCond()) {
         if (pushPC) {
-            stackPush16(context, context.reg_.pc_);
+            stackPush16(reg_.pc_);
         }
-        context.reg_.pc_ = addr;
+        reg_.pc_ = addr;
         // emu_.cycle(1);
     }
 }
 
-static void jp(CPUContext& context)
+void CPUContext::jp()
 {
-    go2(context, context.fetchedData_, false);
+    go2(fetchedData_, false);
 }
 
-static void ret(CPUContext& context)
+void CPUContext::ret()
 {
-    if (context.curInst_.cond != CondType::NONE) {
+    if (curInst_.cond != CondType::NONE) {
         // emu_cycle
     }
 
-    if (checkCond(context)) {
+    if (checkCond()) {
         uint16_t lo;
-        lo = stackPop(context);
+        lo = stackPop();
         uint16_t hi;
-        hi = stackPop(context);
+        hi = stackPop();
         uint16_t res = (hi << 8) | lo;
-        context.reg_.pc_ = res;
+        reg_.pc_ = res;
     }
 }
 
-static void reti(CPUContext& context)
+void CPUContext::reti()
 {
-    context.interruptEnabled_ = true;
-    ret(context);
+    interruptEnabled_ = true;
+    ret();
 }
 
-static void call(CPUContext& context)
+void CPUContext::call()
 {
-    go2(context, context.fetchedData_, true);
+    go2(fetchedData_, true);
 }
 
-static void rst(CPUContext& context)
+void CPUContext::rst()
 {
-    go2(context, context.curInst_.param, true);
+    go2(curInst_.param, true);
 }
 
-static void jr(CPUContext& context)
+void CPUContext::jr()
 {
-    uint16_t addr = context.reg_.pc_ + static_cast<int8_t>(context.fetchedData_ & 0xFF);
-    go2(context, addr, true);
+    uint16_t addr = reg_.pc_ + static_cast<int8_t>(fetchedData_ & 0xFF);
+    go2(addr, true);
 }
 
-static void xor(CPUContext& context)
+void CPUContext::xor()
 {
-    context.reg_.a_ ^= context.fetchedData_ & 0xFF;
-    context.reg_.setFlags(context.reg_.a_, 0, 0, 0);
+    reg_.a_ ^= fetchedData_ & 0xFF;
+    reg_.setFlags(reg_.a_, 0, 0, 0);
 }
 
-static void pop(CPUContext& context)
+void CPUContext::pop()
 {
     uint16_t lo;
-    lo = stackPop(context);
+    lo = stackPop();
     uint16_t hi;
-    hi = stackPop(context);
+    hi = stackPop();
     uint16_t res = (hi << 8) | lo;
-    context.reg_.writeReg(context.curInst_.reg1,
-        res & (context.curInst_.reg1 == RegType::AF ? 0xFFF0 : 0xFFFF));
+    reg_.writeReg(curInst_.reg1,
+        res & (curInst_.reg1 == RegType::AF ? 0xFFF0 : 0xFFFF));
 }
 
-static void push(CPUContext& context)
+void CPUContext::push()
 {
     uint16_t hi;
-    hi = (context.reg_.readReg(context.curInst_.reg1) >> 8) & 0xFF;
-    stackPush(context, hi);
+    hi = (reg_.readReg(curInst_.reg1) >> 8) & 0xFF;
+    stackPush(hi);
     uint16_t lo;
-    lo = hi = context.reg_.readReg(context.curInst_.reg1) & 0xFF;
-    stackPush(context, lo);
+    lo = hi = reg_.readReg(curInst_.reg1) & 0xFF;
+    stackPush(lo);
 }
 
-const std::unordered_map<InstType, ProcFun> PROCESSOR = {
-    {InstType::NOP, nop},
-    {InstType::LD, ld},
-    {InstType::JP, jp},
-    {InstType::JR, jr},
-    {InstType::CALL, call},
-    {InstType::DI, di},
-    {InstType::XOR, xor},
-    {InstType::POP, pop},
-    {InstType::PUSH, push},
-    {InstType::RET, ret},
-    {InstType::RETI, reti},
-    {InstType::RST, rst},
-    {InstType::INC, inc},
-    {InstType::DEC, dec}
-};
+void CPUContext::process()
+{
+    auto it = PROCESSOR_.find(curInst_.type);
+    if(it != PROCESSOR_.end()) {
+        (it->second)();
+        return;
+    }
+    throw std::runtime_error("failed to find processor of instType:" + static_cast<int>(curInst_.type));
+}
 
 void CPUContext::fetchData()
 {

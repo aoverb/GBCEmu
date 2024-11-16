@@ -17,7 +17,6 @@ protected:
     // 私有方法
     void reset();
     void fetchInst();
-    ProcFun getProcessor(InstType& instType);
     void execute();
 };
 }
