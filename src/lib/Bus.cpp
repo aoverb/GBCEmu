@@ -51,11 +51,12 @@ namespace GBCEmu {
     }
     uint16_t Bus::read16(uint16_t addr)
     {
-        TRACE("Bus::read, addr: " << std::hex << addr);
+        TRACE("Bus::read16, addr: " << std::hex << addr);
         if (addr < 0x8000) {
-            return cart_.read(addr);
+            return static_cast<uint16_t>(cart_.read(addr)) | (static_cast<uint16_t>(cart_.read(addr + 1)) << 8);
         }
-        std::cerr << "Bus::read\n";
+        std::cerr << "Bus::read16 unsupported address: " << std::hex << addr << "\n";
+        throw std::out_of_range("Bus::read16 unsupported address");
     }
     void Bus::write(uint16_t addr, uint8_t val)
     {

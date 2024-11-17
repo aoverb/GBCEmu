@@ -29,7 +29,7 @@ protected:
     std::string getLicCode(uint8_t code);
     std::string getROMType(uint8_t code);
     header* header_;
-    std::vector<char> romData_;
+    std::vector<uint8_t> romData_;
 };
 
 static_assert(sizeof(Cartridge::header) == 0x50, "Header size incorrect");

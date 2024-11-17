@@ -83,8 +83,10 @@ void CPU::fetchInst()
 {
     FUNC_TRACE("CPU::fetchInst");
     try {
+        uint16_t pc = context_.reg_.pc_;
         context_.curOpcode_ = context_.bus_.read(context_.reg_.pc_++);
         context_.curInst_ = ::std::move(getInstructionByOpCode(context_.curOpcode_));
+        /*
         std::cout << context_.reg_.pc_ - 1 << "\t Opcode:" << inst_lookup[static_cast<int>(context_.curInst_.type)] <<
             " " << (int)context_.bus_.read(context_.reg_.pc_ - 1) <<
             " " << (int)context_.bus_.read(context_.reg_.pc_) <<
@@ -98,6 +100,7 @@ void CPU::fetchInst()
             << "L " << (int)context_.reg_.l_ << "\t"
             << "F " << (int)context_.reg_.f_ << "\t"
             << "SP " << context_.reg_.sp_ << "\n";
+        */
         
     } catch (std::exception ex) {
         std::cerr << "CPU::fetchInst catches exception: " << ex.what() << "\n";
@@ -121,8 +124,22 @@ void CPU::execute()
 bool CPU::step()
 {
     if (!context_.halt_) {
+        uint16_t pc = context_.reg_.pc_;
         fetchInst();
         context_.fetchData();
+        char flags[16];
+        sprintf(flags, "%c%c%c%c", 
+            context_.reg_.f_ & (1 << 7) ? 'Z' : '-',
+            context_.reg_.f_ & (1 << 6) ? 'N' : '-',
+            context_.reg_.f_ & (1 << 5) ? 'H' : '-',
+            context_.reg_.f_ & (1 << 4) ? 'C' : '-'
+        );
+
+        printf("%04X: %-7s (%02X %02X %02X) A: %02X F: %s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n", 
+            pc, inst_lookup[(int)(context_.curInst_.type)], context_.curOpcode_,
+            context_.bus_.read(pc + 1), context_.bus_.read(pc + 2), context_.reg_.a_, flags, context_.reg_.b_, context_.reg_.c_,
+            context_.reg_.d_, context_.reg_.e_, context_.reg_.h_, context_.reg_.l_);
+
         execute();
     }
     return true;

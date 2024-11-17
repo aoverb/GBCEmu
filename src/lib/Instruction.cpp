@@ -238,7 +238,7 @@ const std::unordered_map<uint8_t, Instruction> INSTRCUTION_SET = {
     {0xDE, {InstType::SBC, AddrMode::R_D8, RegType::A}},
     {0xDF, {InstType::RST, AddrMode::IMP, RegType::NONE, RegType::NONE, CondType::NONE, 0x18}},
 
-    {0xE0, {InstType::LD, AddrMode::HA8_R, RegType::NONE, RegType::A}},
+    {0xE0, {InstType::LDH, AddrMode::A8_R, RegType::NONE, RegType::A}},
     {0xE1, {InstType::POP, AddrMode::IMP, RegType::HL}},
     {0xE2, {InstType::LD, AddrMode::MC_R, RegType::C, RegType::A}},
     {0xE5, {InstType::PUSH, AddrMode::IMP, RegType::HL}},
@@ -250,7 +250,7 @@ const std::unordered_map<uint8_t, Instruction> INSTRCUTION_SET = {
     {0xEE, {InstType::XOR, AddrMode::D8}},
     {0xEF, {InstType::RST, AddrMode::IMP, RegType::NONE, RegType::NONE, CondType::NONE, 0x28}},
 
-    {0xF0, {InstType::LD, AddrMode::R_HA8, RegType::A}},
+    {0xF0, {InstType::LDH, AddrMode::R_A8, RegType::A}},
     {0xF1, {InstType::POP, AddrMode::IMP, RegType::AF}},
     {0xF2, {InstType::LD, AddrMode::R_MC, RegType::A, RegType::C}},
     {0xF3, {InstType::DI, AddrMode::IMP}},

@@ -25,6 +25,9 @@ private:
 #define FUNC_TRACE(funcName) logHelper log(funcName);
 #define TRACE(log) while(0);
 
+inline uint16_t reverse(uint16_t n) {
+    return ((n & 0xFF00) >> 8) | ((n & 0x00FF) << 8);
+}
 
 inline int getBit(uint64_t n, uint64_t digit)
 {

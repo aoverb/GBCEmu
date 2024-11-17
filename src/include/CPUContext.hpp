@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.hpp"
+#include "Cycle.hpp"
 #include "Bus.hpp"
 #include "Instruction.hpp"
 #include "CPURegister.hpp"
@@ -9,13 +10,14 @@ namespace GBCEmu {
 
 class CPUContext {
 public:
-    CPUContext(Bus& bus, CPURegister& reg);
+    CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle);
 
     ~CPUContext() {};
     // 寄存器
 
     void nop();
     void ld();
+    void ldh();
     void inc();
     void dec();
     void ei();
@@ -49,6 +51,7 @@ public:
     void halt();
 
     Bus& bus_;
+    Cycle& cycle_;
     CPURegister& reg_;
     uint8_t curOpcode_;
     uint16_t fetchedData_;

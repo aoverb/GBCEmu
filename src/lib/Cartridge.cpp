@@ -105,7 +105,6 @@ const std::unordered_map<uint8_t, std::string> LIC_CODE = {
     {0x99, "Pack in soft"},
     {0xA4, "Konami (Yu-Gi-Oh!)"}
 };
-
 void Cartridge::load(const std::string& filePath)
 {
     std::cout << "load file : " << filePath << std::endl;
@@ -117,7 +116,7 @@ void Cartridge::load(const std::string& filePath)
     std::streamsize size = romFile.tellg();
     romFile.seekg(0, std::ios::beg);
     romData_.resize(size);
-    if (!romFile.read(romData_.data(), size)) {
+    if (!romFile.read(reinterpret_cast<char*>(romData_.data()), size)) {
         throw std::runtime_error("Load ROM file failed: " + filePath);
     }
 
@@ -138,13 +137,13 @@ void Cartridge::load(const std::string& filePath)
     std::cout << "\t ROM Vers : " << std::hex << static_cast<int>(header_->version) << "\n";
 
     uint16_t x = 0;
-    for (uint16_t i=0x0134; i<=0x014C; i++) {
-        x = x - romData_[i] - 1;
+    // 这里需要确保访问 `romData_` 时能处理 `uint8_t` 数据类型
+    for (uint16_t i = 0x0134; i <= 0x014C; i++) {
+        x = x - static_cast<int>(romData_[i]) - 1;  // 转换为 int 来避免无符号运算问题
     }
 
     std::cout << "\t Checksum : " << std::hex << std::uppercase << static_cast<int>(header_->checksum)
          << ((x & 0xFF) ? "(PASSED)" : "(FAILED)") << "\n";
-
 }
 
 // 获取授权代码对应的字符串
@@ -164,6 +163,7 @@ std::string Cartridge::getROMType(uint8_t code)
 
 uint8_t Cartridge::read(uint16_t addr)
 {
+    // std::cout << "read rom data!addr:" << std::hex <<addr << ", content: " << std::hex << static_cast<int>(romData_[addr]) << "\n";
     return romData_[addr];
 }
 

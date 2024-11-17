@@ -1,9 +1,10 @@
 #include "CPUContext.hpp"
 namespace GBCEmu {
 
-CPUContext::CPUContext(Bus& bus, CPURegister& reg) : bus_(bus), reg_(reg) {
+CPUContext::CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle) : bus_(bus), reg_(reg), cycle_(cycle) {
     PROCESSOR_[InstType::NOP] = [this]() { this->nop(); };
     PROCESSOR_[InstType::LD] = [this]() { this->ld(); };
+    PROCESSOR_[InstType::LDH] = [this]() { this->ldh(); };
     PROCESSOR_[InstType::ADD] = [this]() { this->add(); };
     PROCESSOR_[InstType::ADC] = [this]() { this->adc(); };
     PROCESSOR_[InstType::SUB] = [this]() { this->sub(); };
@@ -44,7 +45,7 @@ bool CPUContext::checkCond()
 {
     bool z = reg_.getZFlag();
     bool c = reg_.getCFlag();
-
+    // std::cout << "zflag!"  << z << std::endl;
     switch (curInst_.cond) {
         case CondType::NONE: return true;
         case CondType::C: return c;
@@ -60,6 +61,18 @@ void CPUContext::nop()
 {
     return;
 }
+
+void CPUContext::ldh()
+{
+    if (curInst_.reg1 == RegType::A) {
+        reg_.writeReg(curInst_.reg1, bus_.read(0xFF00 | fetchedData_));
+    } else {
+        bus_.write(0xFF00 | fetchedData_, reg_.a_);
+    }
+
+    cycle_.cycle(1);
+}
+
 void CPUContext::ld()
 {
     if (writeToMemo_) {
@@ -121,7 +134,7 @@ void CPUContext::dec()
     if ((curOpcode_ & 0x0B) == 0x0B) {
         return;
     }
-
+    std::cout << "dec set flag! val=" << val << std::endl;
     reg_.setFlags(val == 0, 1, (val & 0x0F) == 0x0F, -1);
 }
 
@@ -322,6 +335,7 @@ void CPUContext::or()
 void CPUContext::cp()
 {
     int n = static_cast<int>(reg_.a_) - static_cast<int>(fetchedData_);
+    // std::cout << "n: " << n << "\n"; 
     reg_.setFlags(n == 0, 1, (static_cast<int>(reg_.a_) & 0x0F) - (static_cast<int>(fetchedData_) & 0x0F), n < 0);
 }
 
@@ -346,8 +360,14 @@ void CPUContext::cb()
     uint8_t opcode = fetchedData_;
     RegType reg = decodeReg(opcode & 0b111);
     uint8_t bit = (opcode >> 3) & 0b111;
-    uint8_t bitOp = (opcode >> 6) & 0b111;
+    uint8_t bitOp = (opcode >> 6) & 0b11;
     uint8_t regVal = reg_.readReg(reg);
+
+    cycle_.cycle(1);
+
+    if (reg == RegType::HL) {
+        cycle_.cycle(2);
+    }
 
     switch (bitOp) {
         case 1: // BIT
@@ -510,6 +530,8 @@ void CPUContext::process()
 
 void CPUContext::fetchData()
 {
+    memoDest_ = 0;
+    writeToMemo_ = false;
     FUNC_TRACE("CPU::fetchData");
     uint16_t low, high;
     switch(curInst_.mode) {
@@ -571,19 +593,18 @@ void CPUContext::fetchData()
             return;
         case AddrMode::R_D8:
             fetchedData_ = bus_.read(reg_.pc_);
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             ++reg_.pc_;
             return;
         case AddrMode::R_A8:
             fetchedData_ = bus_.read(bus_.read(reg_.pc_));
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             ++reg_.pc_;
             return;
         case AddrMode::A8_R:
-            memoDest_ = bus_.read(reg_.pc_);
-            fetchedData_ = reg_.readReg(curInst_.reg2);
+            memoDest_ = bus_.read(reg_.pc_) | 0xFF00;
             writeToMemo_ = true;
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             ++reg_.pc_;
             return;
         case AddrMode::R_HA8:
@@ -619,9 +640,9 @@ void CPUContext::fetchData()
         case AddrMode::R_D16:
         case AddrMode::D16:
             low = bus_.read(reg_.pc_);
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             high = bus_.read(reg_.pc_ + 1);
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             fetchedData_ = low | (high << 8);
             reg_.pc_ += 2;
             return;

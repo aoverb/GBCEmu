@@ -21,7 +21,6 @@ public:
     Emulator();
     ~Emulator();
 
-    void cycle(uint16_t cycles);
     void loadROM(const std::string& path);
     int run(int argc, char* argv[]);
     static EmuContext& getContext();
@@ -30,6 +29,7 @@ protected:
     CPU cpu_;
     Bus bus_;
     RAM ram_;
+    Cycle cycle_;
     Cartridge cartridge_;
     // SDL2 相关成员
     ::SDL_Window* window_;
