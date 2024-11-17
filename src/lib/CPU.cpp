@@ -134,13 +134,27 @@ bool CPU::step()
             context_.reg_.f_ & (1 << 5) ? 'H' : '-',
             context_.reg_.f_ & (1 << 4) ? 'C' : '-'
         );
-
         printf("%04X: %-7s (%02X %02X %02X) A: %02X F: %s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n", 
             pc, inst_lookup[(int)(context_.curInst_.type)], context_.curOpcode_,
             context_.bus_.read(pc + 1), context_.bus_.read(pc + 2), context_.reg_.a_, flags, context_.reg_.b_, context_.reg_.c_,
             context_.reg_.d_, context_.reg_.e_, context_.reg_.h_, context_.reg_.l_);
-
         execute();
+    } else {
+
+        cycle_.cycle(1);
+
+        if (context_.intFlag_) {
+            context_.halt_ = false;
+        }
+
+        if (context_.interruptEnabled_) {
+            // context_.handleInterrupts();
+            context_.enablingIME_ = false;
+        }
+
+        if (context_.enablingIME_) {
+            context_.interruptEnabled_ = true;
+        }
     }
     return true;
 }

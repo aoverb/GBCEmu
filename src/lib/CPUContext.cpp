@@ -528,6 +528,47 @@ void CPUContext::process()
     throw std::runtime_error("failed to find processor of instType:" + static_cast<int>(curInst_.type));
 }
 
+void CPUContext::requestInterrupt(InterruptType interrupt)
+{
+    
+}
+
+void CPUContext::handleInterrupt()
+{
+    if ((intFlag_ & static_cast<uint8_t>(InterruptType::VBLANK)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::VBLANK))) {
+        handleByAddress(0x40);
+        intFlag_ &= ~static_cast<uint8_t>(InterruptType::VBLANK);
+        halt_ = false;
+        interruptEnabled_ = false;
+    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::LCD_STAT)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::LCD_STAT))) {
+        handleByAddress(0x48);
+        intFlag_ &= ~static_cast<uint8_t>(InterruptType::LCD_STAT);
+        halt_ = false;
+        interruptEnabled_ = false;
+    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::TIMER)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::TIMER))) {
+        handleByAddress(0x50);
+        intFlag_ &= ~static_cast<uint8_t>(InterruptType::TIMER);
+        halt_ = false;
+        interruptEnabled_ = false;
+    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::SERIAL)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::SERIAL))) {
+        handleByAddress(0x58);
+        intFlag_ &= ~static_cast<uint8_t>(InterruptType::SERIAL);
+        halt_ = false;
+        interruptEnabled_ = false;
+    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::JOYPAD)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::JOYPAD))) {
+        handleByAddress(0x60);
+        intFlag_ &= ~static_cast<uint8_t>(InterruptType::JOYPAD);
+        halt_ = false;
+        interruptEnabled_ = false;
+    } 
+}
+
+void CPUContext::handleByAddress(uint16_t addr)
+{
+    stackPush16(reg_.pc_);
+    reg_.pc_ = addr;
+}
+
 void CPUContext::fetchData()
 {
     memoDest_ = 0;
@@ -587,7 +628,6 @@ void CPUContext::fetchData()
         case AddrMode::HLD_R:
             fetchedData_ = reg_.readReg(curInst_.reg2);
             memoDest_ = reg_.readReg(RegType::HL);
-            std::cout << "memodest:" << memoDest_ << "\n";
             writeToMemo_ = true;
             reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) - 1);
             return;

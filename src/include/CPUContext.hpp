@@ -8,6 +8,14 @@
 
 namespace GBCEmu {
 
+enum class InterruptType {
+    VBLANK = 1,
+    LCD_STAT = 2,
+    TIMER = 4,
+    SERIAL = 8,
+    JOYPAD = 16
+};
+
 class CPUContext {
 public:
     CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle);
@@ -56,15 +64,19 @@ public:
     uint8_t curOpcode_;
     uint16_t fetchedData_;
     Instruction curInst_;
-    bool halt_;
-    bool interruptEnabled_;
-    bool enablingIME_;
+    uint8_t intFlag_ = false;
+    bool halt_ = false;
+    bool interruptEnabled_ = false;
+    bool enablingIME_ = false;
     uint16_t memoDest_;
     bool writeToMemo_ = false;
 
     // 根据寻址模式准备好数据
     void fetchData();
     void process();
+    void requestInterrupt(InterruptType interrupt);
+    void handleInterrupt();
+    void handleByAddress(uint16_t addr);
 
 protected:
     uint8_t stackPop();
@@ -75,7 +87,12 @@ protected:
     bool checkCond();
     RegType decodeReg(uint8_t reg);
     std::unordered_map<InstType, std::function<void()>> PROCESSOR_;
-
+    uint8_t getIntFlags() {
+        return intFlag_;
+    }
+    void setIntFlag(uint8_t flag) {
+        intFlag_ = flag;
+    }
 };
 
 }

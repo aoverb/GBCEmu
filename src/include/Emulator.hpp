@@ -4,17 +4,15 @@
 #include <string>
 #include <vector>
 #include <SDL.h>
+#include "UI.hpp"
 #include "CPU.hpp"
 #include "Bus.hpp"
+#include "CPURegister.hpp"
+#include "Cycle.hpp"
 #include "Cartridge.hpp"
+#include "EmuContext.hpp"
 
 namespace GBCEmu {
-
-typedef struct {
-    bool paused;
-    bool running;
-    uint64_t ticks;
-} EmuContext;
 
 class Emulator {
 public:
@@ -23,12 +21,15 @@ public:
 
     void loadROM(const std::string& path);
     int run(int argc, char* argv[]);
+    void cpuRun();
     static EmuContext& getContext();
-    static EmuContext context_;
+    EmuContext context_;
 protected:
     CPU cpu_;
     Bus bus_;
     RAM ram_;
+    UI ui_;
+    CPURegister reg_;
     Cycle cycle_;
     Cartridge cartridge_;
     // SDL2 相关成员
