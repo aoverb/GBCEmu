@@ -16,6 +16,7 @@ public:
 
 protected:
     // 私有方法
+    void inst_to_str(char *str);
     void reset();
     void fetchInst();
     void execute();

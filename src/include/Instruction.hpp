@@ -19,6 +19,7 @@ enum class InstType {
 };
 enum class CondType {NONE, NZ, Z, NC, C};
 
+
 typedef struct {
     InstType type;
     AddrMode mode;

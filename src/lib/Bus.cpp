@@ -41,7 +41,7 @@ namespace GBCEmu {
             std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
 
         } else if (addr < 0xFF80) {
-            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+            return reg_.ioRead(addr);
         } else if (addr == 0xFFFF) {
             return reg_.ie_;
         } else {
@@ -78,7 +78,7 @@ namespace GBCEmu {
         } else if (addr < 0xFF00) {
             std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFF80) {
-            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            return reg_.ioWrite(addr, val);
         } else if (addr == 0xFFFF) {
             reg_.ie_ = val; 
         } else  {

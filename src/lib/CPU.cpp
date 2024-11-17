@@ -2,6 +2,7 @@
 #include "CPU.hpp"
 #include <iostream>
 #include <utility>
+#include "dbg.hpp"
 
 namespace GBCEmu {
 
@@ -78,6 +79,129 @@ char *inst_lookup[] = {
     "IN_SET"
 };
 
+char *inst_name(InstType t) {
+    return inst_lookup[(int)t];
+}
+
+static char *rt_lookup[] = {
+    "<NONE>",
+    "A",
+    "F",
+    "B",
+    "C",
+    "D",
+    "E",
+    "H",
+    "L",
+    "AF",
+    "BC",
+    "DE",
+    "HL",
+    "SP",
+    "PC"
+};
+
+void CPU::inst_to_str(char *str) {
+    sprintf(str, "%s ", inst_name(context_.curInst_.type));
+
+    switch(context_.curInst_.mode) {
+        case AddrMode::IMP:
+            return;
+
+        case AddrMode::R_D16:
+        case AddrMode::R_A16:
+            sprintf(str, "%s %s,$%04X", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], context_.fetchedData_);
+            return;
+
+        case AddrMode::R:
+            sprintf(str, "%s %s", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)]);
+            return;
+
+        case AddrMode::R_R: 
+            sprintf(str, "%s %s,%s", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::MR_R:
+            sprintf(str, "%s (%s),%s", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::MR:
+            sprintf(str, "%s (%s)", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)]);
+            return;
+
+        case AddrMode::R_MR:
+            sprintf(str, "%s %s,(%s)", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::R_D8:
+        case AddrMode::R_A8:
+            sprintf(str, "%s %s,$%02X", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], context_.fetchedData_ & 0xFF);
+            return;
+
+        case AddrMode::R_HLI:
+            sprintf(str, "%s %s,(%s+)", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::R_HLD:
+            sprintf(str, "%s %s,(%s-)", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::HLI_R:
+            sprintf(str, "%s (%s+),%s", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::HLD_R:
+            sprintf(str, "%s (%s-),%s", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        case AddrMode::A8_R:
+            sprintf(str, "%s $%02X,%s", inst_name(context_.curInst_.type), 
+                context_.bus_.read(context_.reg_.pc_ - 1), rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+
+            return;
+
+        case AddrMode::HL_SPR:
+            sprintf(str, "%s (%s),SP+%d", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], context_.fetchedData_ & 0xFF);
+            return;
+
+        case AddrMode::D8:
+            sprintf(str, "%s $%02X", inst_name(context_.curInst_.type), 
+                context_.fetchedData_ & 0xFF);
+            return;
+
+        case AddrMode::D16:
+            sprintf(str, "%s $%04X", inst_name(context_.curInst_.type), 
+                context_.fetchedData_);
+            return;
+
+        case AddrMode::MR_D8:
+            sprintf(str, "%s (%s),$%02X", inst_name(context_.curInst_.type), 
+                rt_lookup[static_cast<int>(context_.curInst_.reg1)], context_.fetchedData_ & 0xFF);
+            return;
+
+        case AddrMode::A16_R:
+            sprintf(str, "%s ($%04X),%s", inst_name(context_.curInst_.type), 
+                context_.fetchedData_, rt_lookup[static_cast<int>(context_.curInst_.reg2)]);
+            return;
+
+        default:
+            fprintf(stderr, "INVALID AM: %d\n", context_.curInst_.mode);
+            NO_IMPL
+    }
+}
+
 
 void CPU::fetchInst()
 {
@@ -123,21 +247,28 @@ void CPU::execute()
 // 执行下一条指令
 bool CPU::step()
 {
+    dbg dbger(context_.bus_);
     if (!context_.halt_) {
         uint16_t pc = context_.reg_.pc_;
         fetchInst();
         context_.fetchData();
         char flags[16];
+
+        char inst[16];
+        inst_to_str(inst);
         sprintf(flags, "%c%c%c%c", 
             context_.reg_.f_ & (1 << 7) ? 'Z' : '-',
             context_.reg_.f_ & (1 << 6) ? 'N' : '-',
             context_.reg_.f_ & (1 << 5) ? 'H' : '-',
             context_.reg_.f_ & (1 << 4) ? 'C' : '-'
         );
-        printf("%04X: %-7s (%02X %02X %02X) A: %02X F: %s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n", 
-            pc, inst_lookup[(int)(context_.curInst_.type)], context_.curOpcode_,
+        printf("%04X: %-12s (%02X %02X %02X) A: %02X F: %s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n", 
+            pc, inst, context_.curOpcode_,
             context_.bus_.read(pc + 1), context_.bus_.read(pc + 2), context_.reg_.a_, flags, context_.reg_.b_, context_.reg_.c_,
             context_.reg_.d_, context_.reg_.e_, context_.reg_.h_, context_.reg_.l_);
+
+        dbger.dbg_update();
+        dbger.dbg_print();
         execute();
     } else {
 
