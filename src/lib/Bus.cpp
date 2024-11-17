@@ -47,6 +47,7 @@ namespace GBCEmu {
         } else {
             ram_.readHRAM(addr);
         }
+        return 0;
     }
     uint16_t Bus::read16(uint16_t addr)
     {
@@ -78,7 +79,7 @@ namespace GBCEmu {
         } else if (addr < 0xFF80) {
             std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr == 0xFFFF) {
-            reg_.ie_ = val;
+            reg_.ie_ = val; 
         } else  {
             ram_.writeHRAM(addr, val);
         }

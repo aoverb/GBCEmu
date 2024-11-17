@@ -18,6 +18,7 @@ public:
     void ld();
     void inc();
     void dec();
+    void ei();
     void di();
     void jp();
     void ret();
@@ -36,6 +37,16 @@ public:
     void or();
     void cp();
     void cb();
+    void rlca();
+    void rrca();
+    void rla();
+    void rra();
+    void stop();
+    void daa();
+    void cpl();
+    void scf();
+    void ccf();
+    void halt();
 
     Bus& bus_;
     CPURegister& reg_;
@@ -44,6 +55,7 @@ public:
     Instruction curInst_;
     bool halt_;
     bool interruptEnabled_;
+    bool enablingIME_;
     uint16_t memoDest_;
     bool writeToMemo_ = false;
 

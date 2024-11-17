@@ -15,6 +15,7 @@ CPUContext::CPUContext(Bus& bus, CPURegister& reg) : bus_(bus), reg_(reg) {
     PROCESSOR_[InstType::CB] = [this]() { this->cb(); };
     PROCESSOR_[InstType::INC] = [this]() { this->inc(); };
     PROCESSOR_[InstType::DEC] = [this]() { this->dec(); };
+    PROCESSOR_[InstType::EI] = [this]() { this->ei(); };
     PROCESSOR_[InstType::DI] = [this]() { this->di(); };
     PROCESSOR_[InstType::JP] = [this]() { this->jp(); };
     PROCESSOR_[InstType::RET] = [this]() { this->ret(); };
@@ -25,6 +26,16 @@ CPUContext::CPUContext(Bus& bus, CPURegister& reg) : bus_(bus), reg_(reg) {
     PROCESSOR_[InstType::XOR] = [this]() { this->xor(); };
     PROCESSOR_[InstType::POP] = [this]() { this->pop(); };
     PROCESSOR_[InstType::PUSH] = [this]() { this->push(); };
+    PROCESSOR_[InstType::RRCA] = [this]() { this->rrca(); };
+    PROCESSOR_[InstType::RLCA] = [this]() { this->rlca(); };
+    PROCESSOR_[InstType::RRA] = [this]() { this->rra(); };
+    PROCESSOR_[InstType::RLA] = [this]() { this->rla(); };
+    PROCESSOR_[InstType::STOP] = [this]() { this->stop(); };
+    PROCESSOR_[InstType::DAA] = [this]() { this->daa(); };
+    PROCESSOR_[InstType::CPL] = [this]() { this->cpl(); };
+    PROCESSOR_[InstType::SCF] = [this]() { this->scf(); };
+    PROCESSOR_[InstType::CCF] = [this]() { this->ccf(); };
+    PROCESSOR_[InstType::HALT] = [this]() { this->halt(); };
 };
 
 
@@ -137,6 +148,11 @@ void CPUContext::stackPush16(uint16_t val)
 {
     stackPush((val >> 8) & 0xFF);
     stackPush(val & 0xFF);
+}
+
+void CPUContext::ei()
+{
+    enablingIME_ = true;
 }
 
 void CPUContext::di()
@@ -400,6 +416,86 @@ void CPUContext::cb()
 
     std::cerr << "INVALID CB\n";
     NO_IMPL
+}
+
+void CPUContext::rlca()
+{
+    uint8_t res = reg_.a_;
+    bool cFlag = (res >> 7) & 1;
+    res = (res << 1) | cFlag;
+    reg_.a_ = res;
+    reg_.setFlags(0, 0, 0, cFlag);
+}
+
+void CPUContext::rrca()
+{
+    uint8_t res = reg_.a_;
+    uint8_t lsb = res & 1;
+    res = (res >> 1) | (lsb << 7);
+    reg_.a_ = res;
+    reg_.setFlags(0, 0, 0, lsb);
+}
+
+void CPUContext::rla()
+{
+    uint8_t res = reg_.a_;
+    bool cFlag = (res >> 7) & 1;
+    res = (res << 1) | reg_.getCFlag();
+    reg_.a_ = res;
+    reg_.setFlags(0, 0, 0, cFlag);
+}
+
+void CPUContext::rra()
+{
+    uint8_t res = reg_.a_;
+    bool cFlag = res & 1;
+    res = (res >> 1) | (reg_.getCFlag() << 7);
+    reg_.a_ = res;
+    reg_.setFlags(0, 0, 0, cFlag);
+}
+
+void CPUContext::stop()
+{
+    std::cerr << "STOP INSTRUCTION!\n";
+    exit(0);
+}
+
+void CPUContext::daa()
+{
+    uint8_t res = 0;
+    int cFlag = 0;
+
+    if (reg_.getHFlag() || (!reg_.getNFlag() && (reg_.a_ & 0xF) > 9)) {
+        res = 6;
+    }
+    if (reg_.getCFlag() || (!reg_.getNFlag() && reg_.a_ > 0x99)) {
+        res |= 0x60;
+        cFlag = 1;
+    }
+
+    reg_.a_ += reg_.getNFlag() ? -res : res;
+    reg_.setFlags(reg_.a_ == 0, -1, 0, cFlag);
+}
+
+void CPUContext::cpl()
+{
+    reg_.a_ = ~reg_.a_;
+    reg_.setFlags(-1, 1, 1, -1);
+}
+
+void CPUContext::scf()
+{
+    reg_.setFlags(-1, 0, 0, -1);
+}
+
+void CPUContext::ccf()
+{
+    reg_.setFlags(-1, 0, 0, ~reg_.getCFlag());
+}
+
+void CPUContext::halt()
+{
+    halt_ = true;
 }
 
 void CPUContext::process()
