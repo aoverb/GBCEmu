@@ -8,6 +8,11 @@ CPUContext::CPUContext(Bus& bus, CPURegister& reg) : bus_(bus), reg_(reg) {
     PROCESSOR_[InstType::ADC] = [this]() { this->adc(); };
     PROCESSOR_[InstType::SUB] = [this]() { this->sub(); };
     PROCESSOR_[InstType::SBC] = [this]() { this->sbc(); };
+    PROCESSOR_[InstType::AND] = [this]() { this->and(); };
+    PROCESSOR_[InstType::XOR] = [this]() { this->xor(); };
+    PROCESSOR_[InstType::OR] = [this]() { this->or(); };
+    PROCESSOR_[InstType::CP] = [this]() { this->cp(); };
+    PROCESSOR_[InstType::CB] = [this]() { this->cb(); };
     PROCESSOR_[InstType::INC] = [this]() { this->inc(); };
     PROCESSOR_[InstType::DEC] = [this]() { this->dec(); };
     PROCESSOR_[InstType::DI] = [this]() { this->di(); };
@@ -189,15 +194,9 @@ void CPUContext::rst()
 
 void CPUContext::jr()
 {
-    char rel = static_cast<char>(fetchedData_ & 0xFF);
+    int8_t rel = static_cast<int8_t>(fetchedData_ & 0xFF);
     uint16_t addr = reg_.pc_ + rel;
     go2(addr, false);
-}
-
-void CPUContext::xor()
-{
-    reg_.a_ ^= fetchedData_ & 0xFF;
-    reg_.setFlags(reg_.a_, 0, 0, 0);
 }
 
 void CPUContext::pop()
@@ -284,6 +283,52 @@ void GBCEmu::CPUContext::adc()
 
     reg_.a_ = (a + u + c) & 0xFF;
     reg_.setFlags(a == 0, 0, (a & 0xF) + (u & 0xF) + c > 0xF, a + u + c > 0xFF);
+}
+
+void CPUContext::and()
+{
+    reg_.a_ &= fetchedData_;
+    reg_.setFlags(reg_.a_ == 0, 0, 1, 0);
+}
+
+void CPUContext::xor()
+{
+    reg_.a_ ^= fetchedData_ & 0xFF;
+    reg_.setFlags(reg_.a_ == 0, 0, 0, 0);
+}
+
+void CPUContext::or()
+{
+    reg_.a_ |= fetchedData_ & 0xFF;
+    reg_.setFlags(reg_.a_ == 0, 0, 0, 0);
+}
+
+void CPUContext::cp()
+{
+    int n = static_cast<int>(reg_.a_) - static_cast<int>(fetchedData_);
+    reg_.setFlags(n == 0, 1, (static_cast<int>(reg_.a_) & 0x0F) - (static_cast<int>(fetchedData_) & 0x0F), n < 0);
+}
+
+const RegType regTable[8] = {
+    RegType::B,
+    RegType::C,
+    RegType::D,
+    RegType::E,
+    RegType::H,
+    RegType::L,
+    RegType::HL,
+    RegType::A,
+};
+
+RegType CPUContext::decodeReg(uint8_t reg)
+{
+    return regTable[reg];
+}
+
+void CPUContext::cb()
+{
+    uint8_t opcode = fetchedData_;
+    RegType reg = decodeReg(opcode & 0b111);
 }
 
 void CPUContext::process()

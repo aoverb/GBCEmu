@@ -25,13 +25,17 @@ public:
     void call();
     void rst();
     void jr();
-    void xor();
     void pop();
     void push();
     void add();
     void sub();
     void sbc();
     void adc();
+    void and();
+    void xor();
+    void or();
+    void cp();
+    void cb();
 
     Bus& bus_;
     CPURegister& reg_;
@@ -54,6 +58,7 @@ protected:
     void stackPush16(uint16_t val);
     void go2(uint16_t addr, bool pushPC);
     bool checkCond();
+    RegType decodeReg(uint8_t reg);
     std::unordered_map<InstType, std::function<void()>> PROCESSOR_;
 
 };
