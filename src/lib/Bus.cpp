@@ -60,7 +60,7 @@ namespace GBCEmu {
     }
     void Bus::write(uint16_t addr, uint8_t val)
     {
-        // std::cout << "Bus::write addr: " << std::hex << addr << "\n";
+        std::cout << "Bus::write addr: " << std::hex << addr << "\n";
         if (addr < 0x8000) {
             cart_.write(addr, val);
             return;

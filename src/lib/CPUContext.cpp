@@ -67,7 +67,7 @@ void CPUContext::ldh()
     if (curInst_.reg1 == RegType::A) {
         reg_.writeReg(curInst_.reg1, bus_.read(0xFF00 | fetchedData_));
     } else {
-        bus_.write(0xFF00 | fetchedData_, reg_.a_);
+        bus_.write(fetchedData_, reg_.a_);
     }
 
     cycle_.cycle(1);
@@ -104,11 +104,13 @@ void CPUContext::inc()
         // ... emu
     }
     uint16_t val = reg_.readReg(curInst_.reg1) + 1;
-    if (writeToMemo_) {
+    if (curInst_.reg1 == RegType::HL && curInst_.mode == AddrMode::MR) {
         val = (bus_.read(fetchedData_) & 0xFF) + 1;
+        val &= 0xFF;
         bus_.write(fetchedData_, val);
     } else {
         reg_.writeReg(curInst_.reg1, val);
+        val = reg_.readReg(curInst_.reg1);
     }
 
     if ((curOpcode_ & 0x03) == 0x03) {
@@ -124,7 +126,7 @@ void CPUContext::dec()
         // ... emu
     }
     uint16_t val = reg_.readReg(curInst_.reg1) - 1;
-    if (writeToMemo_) {
+    if (curInst_.reg1 == RegType::HL && curInst_.mode == AddrMode::MR) {
         val = (bus_.read(fetchedData_) & 0xFF) - 1;
         bus_.write(fetchedData_, val);
     } else {
@@ -134,7 +136,7 @@ void CPUContext::dec()
     if ((curOpcode_ & 0x0B) == 0x0B) {
         return;
     }
-    std::cout << "dec set flag! val=" << val << std::endl;
+    // std::cout << "dec set flag! val=" << val << std::endl;
     reg_.setFlags(val == 0, 1, (val & 0x0F) == 0x0F, -1);
 }
 
@@ -382,7 +384,7 @@ void CPUContext::cb()
     }
 
     bool flagC = reg_.getCFlag();
-    switch (bitOp) {
+    switch (bit) {
         case 0: {// RLC
             uint8_t carry = getBit(regVal, 7);
             uint8_t res = (regVal << 1) | carry & 0xFF;
@@ -583,22 +585,37 @@ void CPUContext::fetchData()
         case AddrMode::R_R:
             fetchedData_ = reg_.readReg(curInst_.reg2);
             return;
+        case AddrMode::R_MR:
+        {
+            uint16_t addr = reg_.readReg(curInst_.reg2);
+            if (curInst_.reg2 == RegType::C) {
+                addr |= 0xFF00;
+            }
+            fetchedData_ = bus_.read(addr);
+            cycle_.cycle(1);
+            return;
+        }
         case AddrMode::MR_R:
             fetchedData_ = reg_.readReg(curInst_.reg2);
-            memoDest_ = bus_.read(reg_.readReg(curInst_.reg1));
+            memoDest_ = reg_.readReg(curInst_.reg1);
+            if (curInst_.reg1 == RegType::C) {
+                memoDest_ |= 0xFF00;
+            }
             writeToMemo_ = true;
             return;
         case AddrMode::MR:
             memoDest_ = reg_.readReg(curInst_.reg1);
             writeToMemo_ = true;
-            fetchedData_ = reg_.readReg(curInst_.reg1);
+            fetchedData_ = bus_.read(reg_.readReg(curInst_.reg1));
             return;
         case AddrMode::D8:
             fetchedData_ = bus_.read(reg_.pc_);
+            cycle_.cycle(1);
             ++reg_.pc_;
             return;
         case AddrMode::MR_D8:
             fetchedData_ = bus_.read(reg_.pc_);
+            cycle_.cycle(1);
             ++reg_.pc_;
             memoDest_ = reg_.readReg(curInst_.reg1);
             writeToMemo_ = true;
@@ -612,22 +629,23 @@ void CPUContext::fetchData()
             fetchedData_ = bus_.read(reg_.readReg(RegType::C) | 0xFF00);
             return;
         case AddrMode::R_HLI:
-            fetchedData_ = bus_.read(reg_.readReg(RegType::HL));
+            fetchedData_ = bus_.read(reg_.readReg(curInst_.reg2));
+            cycle_.cycle(1);
             reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) + 1);
             return;
         case AddrMode::R_HLD:
-            fetchedData_ = bus_.read(reg_.readReg(RegType::HL));
+            fetchedData_ = bus_.read(reg_.readReg(curInst_.reg2));
             reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) - 1);
             return;
         case AddrMode::HLI_R:
             fetchedData_ = reg_.readReg(curInst_.reg2);
-            memoDest_ = reg_.readReg(RegType::HL);
+            memoDest_ = reg_.readReg(curInst_.reg1);
             writeToMemo_ = true;
-            reg_.writeReg(RegType::HL,reg_.readReg(RegType::HL) + 1);
+            reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) + 1);
             return;
         case AddrMode::HLD_R:
             fetchedData_ = reg_.readReg(curInst_.reg2);
-            memoDest_ = reg_.readReg(RegType::HL);
+            memoDest_ = reg_.readReg(curInst_.reg1);
             writeToMemo_ = true;
             reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) - 1);
             return;
@@ -637,7 +655,7 @@ void CPUContext::fetchData()
             ++reg_.pc_;
             return;
         case AddrMode::R_A8:
-            fetchedData_ = bus_.read(bus_.read(reg_.pc_));
+            fetchedData_ = bus_.read(reg_.pc_);
             cycle_.cycle(1);
             ++reg_.pc_;
             return;
@@ -649,34 +667,38 @@ void CPUContext::fetchData()
             return;
         case AddrMode::R_HA8:
             fetchedData_ = 0xFF00 | bus_.read(bus_.read(reg_.pc_));
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             ++reg_.pc_;
             return;
         case AddrMode::HA8_R:
             memoDest_ = 0xFF00 | bus_.read(reg_.pc_);
             fetchedData_ = reg_.readReg(curInst_.reg2);
             writeToMemo_ = true;
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             ++reg_.pc_;
             return;
+        case AddrMode::D16_R:
         case AddrMode::A16_R:
             low = bus_.read(reg_.pc_);
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             high = bus_.read(reg_.pc_ + 1);
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             memoDest_ = low | (high << 8);
             writeToMemo_ = true;
             fetchedData_ = reg_.readReg(curInst_.reg2);
             reg_.pc_ += 2;
             return;
         case AddrMode::R_A16:
+        {
             low = bus_.read(reg_.pc_);
-            // emu_.cycle(1);
+            cycle_.cycle(1);
             high = bus_.read(reg_.pc_ + 1);
-            // emu_.cycle(1);
-            fetchedData_ = bus_.read(low | (high << 8));
+            cycle_.cycle(1);
+            uint16_t addr = low | (high << 8);
+            fetchedData_ = bus_.read(addr);
             reg_.pc_ += 2;
             return;
+        }
         case AddrMode::R_D16:
         case AddrMode::D16:
             low = bus_.read(reg_.pc_);
