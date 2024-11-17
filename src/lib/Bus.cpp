@@ -27,18 +27,18 @@ namespace GBCEmu {
         if (addr < 0x8000) {
             return cart_.read(addr);
         } else if (addr < 0xA000) {
-            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+           // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xC000) {
             return cart_.read(addr);
         } else if (addr < 0xE000) {
             return ram_.readWRAM(addr);
         } else if (addr < 0xFE00) {
-            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFEA0) {
-            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
             return 0;
         } else if (addr < 0xFF00) {
-            std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
 
         } else if (addr < 0xFF80) {
             return reg_.ioRead(addr);
@@ -60,23 +60,23 @@ namespace GBCEmu {
     }
     void Bus::write(uint16_t addr, uint8_t val)
     {
-        std::cout << "Bus::write addr: " << std::hex << addr << "\n";
+        // std::cout << "Bus::write addr: " << std::hex << addr << "\n";
         if (addr < 0x8000) {
             cart_.write(addr, val);
             return;
         } else if (addr < 0xA000) {
-            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xC000) {
             cart_.write(addr, val);
         } else if (addr < 0xE000) {
             ram_.writeWRAM(addr, val);
             return;
         } else if (addr < 0xFE00) {
-            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFEA0) {
-            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFF00) {
-            std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFF80) {
             return reg_.ioWrite(addr, val);
         } else if (addr == 0xFFFF) {

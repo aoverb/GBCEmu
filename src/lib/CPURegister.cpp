@@ -20,7 +20,7 @@ namespace GBCEmu {
         }
     }
 
-    uint8_t CPURegister::ioRead(uint8_t addr)
+    uint8_t CPURegister::ioRead(uint16_t addr)
     {
         if (addr == 0xFF01) {
             return serialData[0];
@@ -32,7 +32,7 @@ namespace GBCEmu {
         return 0;
     }
 
-    void CPURegister::ioWrite(uint8_t addr, uint8_t val)
+    void CPURegister::ioWrite(uint16_t addr, uint8_t val)
     {
         if (addr == 0xFF01) {
             serialData[0] = val;
@@ -42,7 +42,7 @@ namespace GBCEmu {
             serialData[1] = val;
             return;
         }
-        // std::cerr << "CPURegister::ioWrite UNSUPPORTED\n";
+        // std::cerr << "CPURegister::ioWrite UNSUPPORTED: " << std::hex << (int)addr << std::endl;
     }
 
     uint8_t CPURegister::getZFlag()

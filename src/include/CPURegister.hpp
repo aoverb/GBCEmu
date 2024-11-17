@@ -17,8 +17,8 @@ public:
     char serialData[2];
 
     void setFlags(int z, int n, int h, int c);
-    uint8_t ioRead(uint8_t addr);
-    void ioWrite(uint8_t addr, uint8_t val);
+    uint8_t ioRead(uint16_t addr);
+    void ioWrite(uint16_t addr, uint8_t val);
     uint8_t getZFlag();
     uint8_t getCFlag();
     uint8_t getHFlag();

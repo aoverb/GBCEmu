@@ -17,11 +17,16 @@ CPU::~CPU() {}
 // 重置 CPU
 void CPU::reset()
 {
-    context_.reg_.a_ = 0;
-    context_.reg_.f_ = 0;
-    context_.reg_.b_ = context_.reg_.c_ = context_.reg_.d_ = context_.reg_.e_ = context_.reg_.h_ = context_.reg_.l_ = 0;
+    context_.reg_.a_ = 0x01;
+    context_.reg_.b_ = 0xFF;
+    context_.reg_.c_ = 0x13;
+    context_.reg_.d_ = 0x00;
+    context_.reg_.e_ = 0xC1;
+    context_.reg_.h_ = 0x84;
+    context_.reg_.f_ = 0x00;
+    context_.reg_.l_ = 0x03;
     context_.reg_.b_ = 0;
-    context_.reg_.sp_ = 0xDFFF; // 初始化堆栈指针
+    context_.reg_.sp_ = 0xFFFE; // 初始化堆栈指针
     context_.reg_.pc_ = 0x0100; // 游戏开始执行地址
     context_.halt_ = false;
     context_.interruptEnabled_ = true;
@@ -261,13 +266,13 @@ bool CPU::step()
             context_.reg_.f_ & (1 << 5) ? 'H' : '-',
             context_.reg_.f_ & (1 << 4) ? 'C' : '-'
         );
+        /*
         printf("%04X: %-12s (%02X %02X %02X) A: %02X F: %s BC: %02X%02X DE: %02X%02X HL: %02X%02X\n", 
             pc, inst, context_.curOpcode_,
             context_.bus_.read(pc + 1), context_.bus_.read(pc + 2), context_.reg_.a_, flags, context_.reg_.b_, context_.reg_.c_,
             context_.reg_.d_, context_.reg_.e_, context_.reg_.h_, context_.reg_.l_);
-
+        */
         dbger.dbg_update();
-        dbger.dbg_print();
         execute();
     } else {
 

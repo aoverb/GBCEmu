@@ -169,7 +169,7 @@ uint8_t Cartridge::read(uint16_t addr)
 
 void Cartridge::write(uint16_t addr, uint8_t val)
 {
-    std::cerr << "Cartridge::write unspported...\n";
+    // std::cerr << "Cartridge::write unspported...\n";
 }
 
 }

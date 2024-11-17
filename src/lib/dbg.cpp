@@ -11,12 +11,13 @@ void dbg::dbg_update() {
         dbg_msg[msg_size++] = c;
 
         bus_.write(0xFF02, 0);
+        dbg_print();
     }
 }
 
 void dbg::dbg_print() {
     if (dbg_msg[0]) {
-        printf("DBG: %s\n\n\n", dbg_msg);
+        printf("DBG: %s\n", dbg_msg);
     }
 }
 }

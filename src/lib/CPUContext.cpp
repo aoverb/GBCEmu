@@ -67,7 +67,7 @@ void CPUContext::ldh()
     if (curInst_.reg1 == RegType::A) {
         reg_.writeReg(curInst_.reg1, bus_.read(0xFF00 | fetchedData_));
     } else {
-        bus_.write(fetchedData_, reg_.a_);
+        bus_.write(memoDest_, reg_.a_);
     }
 
     cycle_.cycle(1);
@@ -81,14 +81,13 @@ void CPUContext::ld()
         } else {
             bus_.write(memoDest_, fetchedData_);
         }
-        writeToMemo_ = false;
         return;
     }
 
     if (curInst_.mode == AddrMode::HL_SPR) {
-        uint8_t hFlag = (reg_.readReg(curInst_.reg1) & 0xF) +
+        uint8_t hFlag = (fetchedData_ & 0xF) +
             (reg_.readReg(curInst_.reg2) & 0xF) >= 0x10;
-        uint8_t cFlag = (reg_.readReg(curInst_.reg1) & 0xFF) +
+        uint8_t cFlag = (fetchedData_ & 0xFF) +
             (reg_.readReg(curInst_.reg2) & 0xFF) >= 0x100;
         reg_.setFlags(0, 0, hFlag, cFlag);
         reg_.writeReg(curInst_.reg1, reg_.readReg(curInst_.reg2) +
@@ -177,6 +176,7 @@ void CPUContext::di()
 
 void CPUContext::go2(uint16_t addr, bool pushPC)
 {
+    // cout << "checkcond" << checkCond()
     if (checkCond()) {
         if (pushPC) {
             stackPush16(reg_.pc_);
@@ -225,7 +225,8 @@ void CPUContext::rst()
 
 void CPUContext::jr()
 {
-    int8_t rel = static_cast<int8_t>(fetchedData_ & 0xFF);
+    int8_t rel = static_cast<int>(fetchedData_ & 0xFF);
+    // std::cout << "rel: " << (int)rel << std::endl;
     uint16_t addr = reg_.pc_ + rel;
     go2(addr, false);
 }

@@ -66,7 +66,6 @@ void Emulator::cpuRun()
             std::cerr << "cpu failed" << "\n";
             break;
         }
-        // ui_.delay(10);
 
         // 更新其他模块
         // 处理输入
