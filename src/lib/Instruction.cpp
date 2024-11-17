@@ -209,6 +209,7 @@ const std::unordered_map<uint8_t, Instruction> INSTRCUTION_SET = {
     {0xC8, {InstType::RET, AddrMode::IMP, RegType::NONE, RegType::NONE, CondType::Z}},
     {0xC9, {InstType::RET, AddrMode::IMP}},
     {0xCA, {InstType::JP, AddrMode::D16, RegType::NONE, RegType::NONE, CondType::Z}},
+    {0xCB, {InstType::CB, AddrMode::D8}},
     {0xCC, {InstType::CALL, AddrMode::D16, RegType::NONE, RegType::NONE, CondType::Z}},
     {0xCD, {InstType::CALL, AddrMode::D16}},
     {0xCE, {InstType::ADC, AddrMode::R_D8, RegType::A}},

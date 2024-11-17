@@ -329,6 +329,77 @@ void CPUContext::cb()
 {
     uint8_t opcode = fetchedData_;
     RegType reg = decodeReg(opcode & 0b111);
+    uint8_t bit = (opcode >> 3) & 0b111;
+    uint8_t bitOp = (opcode >> 6) & 0b111;
+    uint8_t regVal = reg_.readReg(reg);
+
+    switch (bitOp) {
+        case 1: // BIT
+            reg_.setFlags(getBit(regVal, bit) == 0, 0, 1, -1);
+            return;
+        case 2: // RST
+            reg_.writeReg(reg, regVal & ~(1 << bit));
+            return;
+        case 3: // SET
+            reg_.writeReg(reg, regVal | (1 << bit));
+            return;
+    }
+
+    bool flagC = reg_.getCFlag();
+    switch (bitOp) {
+        case 0: {// RLC
+            uint8_t carry = getBit(regVal, 7);
+            uint8_t res = (regVal << 1) | carry & 0xFF;
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 1, -1, carry);
+            return;
+            }
+        case 1: {// RRC
+            uint8_t carry = getBit(regVal, 0);
+            uint8_t res = (regVal >> 1) | (carry << 7  & 0xFF);
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, carry);
+            return;
+            }
+        case 2: {// RL
+            uint8_t res = (regVal << 1) | flagC;
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, !!(regVal & 0x80));
+            return;
+            }
+        case 3: {// RR
+            uint8_t res = (regVal >> 1) | (flagC << 7);
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, regVal & 0x1);
+            return;
+            }
+        case 4: {// SLA
+            uint8_t res = (regVal << 1);
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, !!(regVal & 0x80));
+            return;
+            }
+        case 5: {// SRA
+            uint8_t res = (static_cast<int>(regVal) >> 1);
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, regVal & 0x1);
+            return;}
+        case 6: {// SWAP
+            uint8_t res = (regVal >> 4) | ((regVal & 0xF) << 4);
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, 0);
+            return;
+            }
+        case 7: {// SRL
+            uint8_t res = (regVal >> 1);
+            reg_.writeReg(reg, res);
+            reg_.setFlags(res == 0, 0, 0, regVal & 0x1);
+            return;
+            }
+    }
+
+    std::cerr << "INVALID CB\n";
+    NO_IMPL
 }
 
 void CPUContext::process()
