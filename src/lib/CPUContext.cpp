@@ -104,9 +104,9 @@ void CPUContext::inc()
     }
     uint16_t val = reg_.readReg(curInst_.reg1) + 1;
     if (curInst_.reg1 == RegType::HL && curInst_.mode == AddrMode::MR) {
-        val = (bus_.read(fetchedData_) & 0xFF) + 1;
+        val = (bus_.read(reg_.readReg(RegType::HL))) + 1;
         val &= 0xFF;
-        bus_.write(fetchedData_, val);
+        bus_.write(reg_.readReg(RegType::HL), val);
     } else {
         reg_.writeReg(curInst_.reg1, val);
         val = reg_.readReg(curInst_.reg1);
@@ -126,10 +126,11 @@ void CPUContext::dec()
     }
     uint16_t val = reg_.readReg(curInst_.reg1) - 1;
     if (curInst_.reg1 == RegType::HL && curInst_.mode == AddrMode::MR) {
-        val = (bus_.read(fetchedData_) & 0xFF) - 1;
-        bus_.write(fetchedData_, val);
+        val = (bus_.read(reg_.readReg(RegType::HL))) - 1;
+        bus_.write(reg_.readReg(RegType::HL), val);
     } else {
         reg_.writeReg(curInst_.reg1, val);
+        val = reg_.readReg(curInst_.reg1);
     }
 
     if ((curOpcode_ & 0x0B) == 0x0B) {
@@ -141,7 +142,7 @@ void CPUContext::dec()
 
 uint8_t CPUContext::stackPop()
 {
-    return bus_.read(reg_.sp_++);
+    return bus_.read((reg_.sp_)++);
 }
 
 uint16_t CPUContext::stackPop16()
@@ -155,7 +156,7 @@ uint16_t CPUContext::stackPop16()
 
 void CPUContext::stackPush(uint8_t val)
 {
-    bus_.write(--reg_.sp_, val);
+    bus_.write(--(reg_.sp_), val);
 }
 
 void CPUContext::stackPush16(uint16_t val)
@@ -254,7 +255,7 @@ void CPUContext::push()
 
 void CPUContext::add()
 {
-    uint16_t val = reg_.readReg(curInst_.reg1) + fetchedData_;
+    uint32_t val = reg_.readReg(curInst_.reg1) + fetchedData_;
     bool is16bit = is16bitReg(curInst_.reg1);
     if (is16bit) {
         // emu...
@@ -269,14 +270,15 @@ void CPUContext::add()
     int c = (static_cast<int>(reg_.readReg(curInst_.reg1) & 0xFF) + static_cast<int>(fetchedData_ & 0xFF)) >= 0x100;
     if (is16bit) {
         z = -1;
-        h = ((reg_.readReg(curInst_.reg1) & 0xFFF) + (static_cast<int8_t>(fetchedData_) & 0xFFF)) >= 0x1000;
-        c = (static_cast<uint32_t>(reg_.readReg(curInst_.reg1) & 0xFFFF) + static_cast<uint32_t>(fetchedData_ & 0xFFFF)) >= 0x10000;
+        h = ((reg_.readReg(curInst_.reg1) & 0xFFF) + (fetchedData_ & 0xFFF)) >= 0x1000;
+        uint32_t n = (static_cast<uint32_t>(reg_.readReg(curInst_.reg1)) + static_cast<uint32_t>(fetchedData_));
+        c = n >= 0x10000;
     }
 
     if (curInst_.reg1 == RegType::SP) {
         z = 0;
-        h = ((reg_.readReg(curInst_.reg1) & 0xF) + (static_cast<int8_t>(fetchedData_) & 0xF)) >= 0x10;
-        c = (static_cast<uint16_t>(reg_.readReg(curInst_.reg1) & 0xFF) + static_cast<uint16_t>(fetchedData_ & 0xFF)) >= 0x100;
+        h = ((reg_.readReg(curInst_.reg1) & 0xF) + (fetchedData_ & 0xF)) >= 0x10;
+        c = (static_cast<int>(reg_.readReg(curInst_.reg1) & 0xFF) + static_cast<int>(fetchedData_ & 0xFF)) >= 0x100;
     }
 
     reg_.writeReg(curInst_.reg1, val & 0xFFFF);
@@ -314,7 +316,7 @@ void GBCEmu::CPUContext::adc()
     uint16_t c = reg_.getCFlag();
 
     reg_.a_ = (a + u + c) & 0xFF;
-    reg_.setFlags(a == 0, 0, (a & 0xF) + (u & 0xF) + c > 0xF, a + u + c > 0xFF);
+    reg_.setFlags(reg_.a_ == 0, 0, (a & 0xF) + (u & 0xF) + c > 0xF, a + u + c > 0xFF);
 }
 
 void CPUContext::and()
@@ -339,7 +341,7 @@ void CPUContext::cp()
 {
     int n = static_cast<int>(reg_.a_) - static_cast<int>(fetchedData_);
     // std::cout << "n: " << n << "\n"; 
-    reg_.setFlags(n == 0, 1, (static_cast<int>(reg_.a_) & 0x0F) - (static_cast<int>(fetchedData_) & 0x0F), n < 0);
+    reg_.setFlags(n == 0, 1, (static_cast<int>(reg_.a_) & 0x0F) - (static_cast<int>(fetchedData_) & 0x0F) < 0, n < 0);
 }
 
 const RegType regTable[8] = {
@@ -355,6 +357,9 @@ const RegType regTable[8] = {
 
 RegType CPUContext::decodeReg(uint8_t reg)
 {
+    if (reg > 0b111) {
+        return RegType::NONE;
+    }
     return regTable[reg];
 }
 
@@ -364,8 +369,12 @@ void CPUContext::cb()
     RegType reg = decodeReg(opcode & 0b111);
     uint8_t bit = (opcode >> 3) & 0b111;
     uint8_t bitOp = (opcode >> 6) & 0b11;
+    uint16_t regSus = reg_.readReg(reg);
     uint8_t regVal = reg_.readReg(reg);
-
+    if (reg == RegType::HL) {
+        regVal = bus_.read(regSus);
+    }
+    
     cycle_.cycle(1);
 
     if (reg == RegType::HL) {
@@ -377,9 +386,17 @@ void CPUContext::cb()
             reg_.setFlags(getBit(regVal, bit) == 0, 0, 1, -1);
             return;
         case 2: // RST
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), regVal & ~(1 << bit));
+                return;
+            }
             reg_.writeReg(reg, regVal & ~(1 << bit));
             return;
         case 3: // SET
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), regVal | (1 << bit));
+                return;
+            }
             reg_.writeReg(reg, regVal | (1 << bit));
             return;
     }
@@ -389,50 +406,82 @@ void CPUContext::cb()
         case 0: {// RLC
             uint8_t carry = getBit(regVal, 7);
             uint8_t res = (regVal << 1) | carry & 0xFF;
+            reg_.setFlags(res == 0, 0, 0, carry);
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
             reg_.writeReg(reg, res);
-            reg_.setFlags(res == 0, 1, -1, carry);
             return;
             }
         case 1: {// RRC
             uint8_t carry = getBit(regVal, 0);
             uint8_t res = (regVal >> 1) | (carry << 7  & 0xFF);
-            reg_.writeReg(reg, res);
             reg_.setFlags(res == 0, 0, 0, carry);
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
+            reg_.writeReg(reg, res);
             return;
             }
         case 2: {// RL
             uint8_t res = (regVal << 1) | flagC;
-            reg_.writeReg(reg, res);
             reg_.setFlags(res == 0, 0, 0, !!(regVal & 0x80));
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
+            reg_.writeReg(reg, res);
             return;
             }
         case 3: {// RR
             uint8_t res = (regVal >> 1) | (flagC << 7);
-            reg_.writeReg(reg, res);
             reg_.setFlags(res == 0, 0, 0, regVal & 0x1);
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
+            reg_.writeReg(reg, res);
             return;
             }
         case 4: {// SLA
             uint8_t res = (regVal << 1);
-            reg_.writeReg(reg, res);
             reg_.setFlags(res == 0, 0, 0, !!(regVal & 0x80));
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
+            reg_.writeReg(reg, res);
             return;
             }
         case 5: {// SRA
-            uint8_t res = (static_cast<int>(regVal) >> 1);
+            uint8_t res = (static_cast<int8_t>(regVal) >> 1);
+            reg_.setFlags(res == 0, 0, 0, regVal & 1);
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
             reg_.writeReg(reg, res);
-            reg_.setFlags(res == 0, 0, 0, regVal & 0x1);
             return;}
         case 6: {// SWAP
             uint8_t res = (regVal >> 4) | ((regVal & 0xF) << 4);
-            reg_.writeReg(reg, res);
             reg_.setFlags(res == 0, 0, 0, 0);
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
+            reg_.writeReg(reg, res);
             return;
             }
         case 7: {// SRL
             uint8_t res = (regVal >> 1);
-            reg_.writeReg(reg, res);
             reg_.setFlags(res == 0, 0, 0, regVal & 0x1);
+            if (reg == RegType::HL) {
+                bus_.write(reg_.readReg(RegType::HL), res);
+                return;
+            }
+            reg_.writeReg(reg, res);
             return;
             }
     }
@@ -508,12 +557,12 @@ void CPUContext::cpl()
 
 void CPUContext::scf()
 {
-    reg_.setFlags(-1, 0, 0, -1);
+    reg_.setFlags(-1, 0, 0, 1);
 }
 
 void CPUContext::ccf()
 {
-    reg_.setFlags(-1, 0, 0, ~reg_.getCFlag());
+    reg_.setFlags(-1, 0, 0, reg_.getCFlag() ^ 1);
 }
 
 void CPUContext::halt()
@@ -603,6 +652,11 @@ void CPUContext::fetchData()
                 memoDest_ |= 0xFF00;
             }
             writeToMemo_ = true;
+            return;
+        case AddrMode::HL_SPR:
+            fetchedData_ = bus_.read(reg_.pc_);
+            cycle_.cycle(1);
+            ++reg_.pc_;
             return;
         case AddrMode::MR:
             memoDest_ = reg_.readReg(curInst_.reg1);

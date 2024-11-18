@@ -86,8 +86,8 @@ namespace GBCEmu {
     void CPURegister::writeReg(RegType reg, uint16_t val)
     {
         switch(reg) {
-            case RegType::A: a_ = val & 0xFF; return;
-            case RegType::B: b_ = val & 0xFF; return;
+            case RegType::A: a_ = (val & 0xFF); return;
+            case RegType::B: b_ = (val & 0xFF); return;
             case RegType::C: c_ = val & 0xFF; return;
             case RegType::D: d_ = val & 0xFF; return;
             case RegType::E: e_ = val & 0xFF; return;

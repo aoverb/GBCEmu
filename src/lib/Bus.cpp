@@ -45,7 +45,7 @@ namespace GBCEmu {
         } else if (addr == 0xFFFF) {
             return reg_.ie_;
         } else {
-            ram_.readHRAM(addr);
+            return ram_.readHRAM(addr);
         }
         return 0;
     }

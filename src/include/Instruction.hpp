@@ -32,7 +32,7 @@ typedef struct {
 Instruction getInstructionByOpCode(uint8_t opCode);
 
 static bool is16bitReg(RegType reg) {
-    return reg >= RegType::AF;
+    return reg == RegType::AF ||  reg == RegType::SP ||  reg == RegType::HL || reg == RegType::AF || reg == RegType::BC || reg == RegType::DE;
 }
 
 }

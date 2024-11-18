@@ -18,13 +18,13 @@ CPU::~CPU() {}
 void CPU::reset()
 {
     context_.reg_.a_ = 0x01;
-    context_.reg_.b_ = 0xFF;
+    context_.reg_.b_ = 0x00;
     context_.reg_.c_ = 0x13;
     context_.reg_.d_ = 0x00;
-    context_.reg_.e_ = 0xC1;
-    context_.reg_.h_ = 0x84;
-    context_.reg_.f_ = 0x00;
-    context_.reg_.l_ = 0x03;
+    context_.reg_.e_ = 0xD8;
+    context_.reg_.h_ = 0x01;
+    context_.reg_.f_ = 0xB0;
+    context_.reg_.l_ = 0x4D;
     context_.reg_.b_ = 0;
     context_.reg_.sp_ = 0xFFFE; // 初始化堆栈指针
     context_.reg_.pc_ = 0x0100; // 游戏开始执行地址
