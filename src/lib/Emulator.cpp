@@ -7,7 +7,7 @@
 namespace GBCEmu {
 
 // 构造函数
-Emulator::Emulator() : bus_(cartridge_, ram_, reg_, interrupt_), cpu_(bus_, reg_, cycle_, interrupt_), ui_(context_)
+Emulator::Emulator() : ui_(context_), timer_(interrupt_), io_(timer_), bus_(cartridge_, ram_, reg_, interrupt_, io_), cpu_(bus_, reg_, cycle_, interrupt_)
 {
     // 初始化其他模块
 }

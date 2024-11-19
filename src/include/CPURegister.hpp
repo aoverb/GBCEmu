@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.hpp"
 #include "Instruction.hpp"
+#include "IO.hpp"
 #include <functional>
 
 namespace GBCEmu {
@@ -13,11 +14,8 @@ public:
     uint8_t d_, e_;
     uint8_t h_, l_;
     uint16_t sp_, pc_;
-    char serialData[2];
 
     void setFlags(int z, int n, int h, int c);
-    uint8_t ioRead(uint16_t addr);
-    void ioWrite(uint16_t addr, uint8_t val);
     uint8_t getZFlag();
     uint8_t getCFlag();
     uint8_t getHFlag();

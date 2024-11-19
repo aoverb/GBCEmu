@@ -9,6 +9,7 @@
 #include "Bus.hpp"
 #include "CPURegister.hpp"
 #include "Cycle.hpp"
+#include "Timer.hpp"
 #include "Cartridge.hpp"
 #include "EmuContext.hpp"
 
@@ -29,7 +30,9 @@ protected:
     Bus bus_;
     RAM ram_;
     UI ui_;
+    IO io_;
     Interrupt interrupt_;
+    Timer timer_;
     CPURegister reg_;
     Cycle cycle_;
     Cartridge cartridge_;

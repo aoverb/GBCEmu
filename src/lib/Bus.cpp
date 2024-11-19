@@ -14,7 +14,7 @@
 // 0xFF00 - 0xFF7F : I/O Registers
 
 namespace GBCEmu {
-    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt) : cart_(cart), ram_(ram), reg_(reg), interrupt_(interrupt)
+    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt, IO& io) : cart_(cart), ram_(ram), reg_(reg), interrupt_(interrupt), io_(io)
     {
     }
 
@@ -41,7 +41,7 @@ namespace GBCEmu {
             // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
 
         } else if (addr < 0xFF80) {
-            return reg_.ioRead(addr);
+            return io_.read(addr);
         } else if (addr == 0xFFFF) {
             return interrupt_.getIE();
         } else {
@@ -78,7 +78,7 @@ namespace GBCEmu {
         } else if (addr < 0xFF00) {
             // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFF80) {
-            return reg_.ioWrite(addr, val);
+            return io_.write(addr, val);
         } else if (addr == 0xFFFF) {
             interrupt_.setIE(val);
         } else  {
