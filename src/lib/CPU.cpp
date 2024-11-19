@@ -254,6 +254,7 @@ bool CPU::step()
     if (!context_.halt_) {
         uint16_t pc = context_.reg_.pc_;
         fetchInst();
+        cycle_.cycle(1);
         context_.fetchData();
         char flags[16];
 
@@ -280,19 +281,19 @@ bool CPU::step()
         if (interrupt_.getIntFlag()) {
             context_.halt_ = false;
         }
+    }
 
-        if (interrupt_.getInterruptEnabled()) {
-            uint16_t addr;
-            if (interrupt_.handleInterrupt(addr)) {
-                context_.handleByAddress(addr);
-                context_.halt_ = false;
-            }
-            interrupt_.setEnablingIME_(false);
+    if (interrupt_.getInterruptEnabled()) {
+        uint16_t addr;
+        if (interrupt_.handleInterrupt(addr)) {
+            context_.handleByAddress(addr);
+            context_.halt_ = false;
         }
+        interrupt_.setEnablingIME_(false);
+    }
 
-        if (interrupt_.getEnablingIME_()) {
-            interrupt_.setInterruptEnabled(true);
-        }
+    if (interrupt_.getEnablingIME_()) {
+        interrupt_.setInterruptEnabled(true);
     }
     return true;
 }
