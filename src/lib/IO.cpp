@@ -1,7 +1,7 @@
 #include "IO.hpp"
 
 namespace GBCEmu {
-    IO::IO(Timer timer) : timer_(timer)
+    IO::IO(Timer& timer, Interrupt& interrupt) : timer_(timer), interrupt_(interrupt)
     {
     }
 
@@ -17,7 +17,14 @@ namespace GBCEmu {
         if (addr == 0xFF02) {
             return serialData[1];
         }
-        // std::cerr << "CPURegister::ioRead UNSUPPORTED\n";
+        if (between(addr, 0xFF04, 0xFF07)) {
+            return timer_.read(addr);
+        }
+
+        if (addr == 0xFF0F) {
+            return interrupt_.getIntFlag();
+        }
+        // std::cerr << "CPURegister::ioRead UNSUPPORTED: " << std::hex << addr << "\n";
         return 0;
     }
 
@@ -29,6 +36,15 @@ namespace GBCEmu {
         }
         if (addr == 0xFF02) {
             serialData[1] = val;
+            return;
+        }
+
+        if (between(addr, 0xFF04, 0xFF07)) {
+            timer_.write(addr, val);
+            return;
+        } 
+        if (addr == 0xFF0F) {
+            interrupt_.setIntFlag(val);
             return;
         }
         // std::cerr << "CPURegister::ioWrite UNSUPPORTED: " << std::hex << (int)addr << std::endl;

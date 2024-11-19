@@ -39,7 +39,7 @@ namespace GBCEmu {
             return 0;
         } else if (addr < 0xFF00) {
             // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
-
+            return 0;
         } else if (addr < 0xFF80) {
             return io_.read(addr);
         } else if (addr == 0xFFFF) {

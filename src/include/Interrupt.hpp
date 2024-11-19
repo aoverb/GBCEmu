@@ -15,8 +15,8 @@ public:
     Interrupt();
     ~Interrupt();
     void requestInterrupt(InterruptType interrupt);
-    bool Interrupt::handleInterrupt(uint16_t& callBackAddr);
-    uint8_t getIntFlags() {
+    bool handleInterrupt(uint16_t& callBackAddr);
+    uint8_t getIntFlag() {
         return intFlag_;
     }
     void setIntFlag(uint8_t flag) {
@@ -42,7 +42,7 @@ public:
     }
 protected:
     uint8_t intFlag_ = 0;
-    bool interruptEnabled_ = true;
+    bool interruptEnabled_ = false;
     bool enablingIME_ = false;
     uint8_t ie_ = 0;
 };

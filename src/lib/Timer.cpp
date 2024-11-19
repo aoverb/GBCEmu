@@ -3,7 +3,7 @@
 namespace GBCEmu {
     Timer::Timer(Interrupt& interrupt) : interrupt_(interrupt)
     {
-        div_ = 0xAC00;
+        div_ = 0xABFF;
     }
 
     Timer::~Timer()
@@ -18,16 +18,16 @@ namespace GBCEmu {
         bool isTimerUpdated = false;
         switch (tac_ & (0b11)) {
             case 0b00:
-                isTimerUpdated = (prev & (1 << 9) && (!(div_ & (1 << 9))));
+                isTimerUpdated = ((prev & (1 << 9)) && (!(div_ & (1 << 9))));
                 break;
             case 0b01:
-                isTimerUpdated = (prev & (1 << 3) && (!(div_ & (1 << 3))));
+                isTimerUpdated = ((prev & (1 << 3)) && (!(div_ & (1 << 3))));
                 break;
             case 0b10:
-                isTimerUpdated = (prev & (1 << 5) && (!(div_ & (1 << 5))));
+                isTimerUpdated = ((prev & (1 << 5)) && (!(div_ & (1 << 5))));
                 break;
             case 0b11:
-                isTimerUpdated = (prev & (1 << 7) && (!(div_ & (1 << 7))));
+                isTimerUpdated = ((prev & (1 << 7)) && (!(div_ & (1 << 7))));
                 break;
         }
 
@@ -35,7 +35,7 @@ namespace GBCEmu {
             ++tima_;
 
             if (tima_ == 0xFF) {
-                tima_ = 0;
+                tima_ = tma_;
                 interrupt_.requestInterrupt(InterruptType::TIMER);
             }
         }
@@ -44,7 +44,7 @@ namespace GBCEmu {
     {
         switch (addr) {
             case 0xFF04:
-                return div_;
+                return div_ >> 8;
             case 0xFF05:
                 return tima_;
             case 0xFF06:

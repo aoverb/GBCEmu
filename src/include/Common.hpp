@@ -54,7 +54,7 @@ inline void setBit(uint8_t& n, uint64_t digit, bool val)
 
 inline bool between(uint64_t a, uint64_t b, uint64_t c)
 {
-    return (a <= b) && (b <= c);
+    return (a >= b) && (a <= c);
 }
 
 void delay(uint32_t ms);

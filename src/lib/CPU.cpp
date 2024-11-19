@@ -277,12 +277,16 @@ bool CPU::step()
 
         cycle_.cycle(1);
 
-        if (interrupt_.getIntFlags()) {
+        if (interrupt_.getIntFlag()) {
             context_.halt_ = false;
         }
 
         if (interrupt_.getInterruptEnabled()) {
-            // context_.handleInterrupts();
+            uint16_t addr;
+            if (interrupt_.handleInterrupt(addr)) {
+                context_.handleByAddress(addr);
+                context_.halt_ = false;
+            }
             interrupt_.setEnablingIME_(false);
         }
 
