@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include "Common.hpp"
 
 
 namespace GBCEmu {
@@ -10,7 +10,7 @@ enum class AddrMode {
 };
 
 enum class RegType {
-    NONE, A, F, B, C, D, E, H, L, AF, BC, DE, HL, SP, PC, IE
+    NONE, A, F, B, C, D, E, H, L, AF, BC, DE, HL, SP, PC
 };
 
 enum class InstType {

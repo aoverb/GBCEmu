@@ -1,13 +1,14 @@
 #pragma once
-#include "common.hpp"
+#include "Common.hpp"
 #include "Cartridge.hpp"
 #include "CPURegister.hpp"
 #include "RAM.hpp"
+#include "Interrupt.hpp"
 
 namespace GBCEmu {
 class Bus {
 public:
-    Bus(Cartridge& cart, RAM& ram, CPURegister& reg);
+    Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt);
     ~Bus();
 
     uint8_t read(uint16_t addr);
@@ -18,6 +19,7 @@ protected:
     Cartridge& cart_;
     RAM& ram_;
     CPURegister& reg_;
+    Interrupt& interrupt_;
     
 };
 }

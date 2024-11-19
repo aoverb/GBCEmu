@@ -5,14 +5,16 @@
 namespace GBCEmu {
 class CPU {
 public:
-    CPU(Bus& bus, CPURegister& reg, Cycle& cycle) : context_(bus, reg, cycle) {
+    CPU(Bus& bus, CPURegister& reg, Cycle& cycle, Interrupt& interrupt) :
+        context_(bus, reg, cycle, interrupt), cycle_(cycle), interrupt_(interrupt) {
         reset();
     }
     ~CPU();
 
     bool step();
     CPUContext context_;
-    Cycle cycle_;
+    Cycle& cycle_;
+    Interrupt& interrupt_;
 
 protected:
     // 私有方法

@@ -14,7 +14,7 @@
 // 0xFF00 - 0xFF7F : I/O Registers
 
 namespace GBCEmu {
-    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg) : cart_(cart), ram_(ram), reg_(reg)
+    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt) : cart_(cart), ram_(ram), reg_(reg), interrupt_(interrupt)
     {
     }
 
@@ -43,7 +43,7 @@ namespace GBCEmu {
         } else if (addr < 0xFF80) {
             return reg_.ioRead(addr);
         } else if (addr == 0xFFFF) {
-            return reg_.ie_;
+            return interrupt_.getIE();
         } else {
             return ram_.readHRAM(addr);
         }
@@ -80,7 +80,7 @@ namespace GBCEmu {
         } else if (addr < 0xFF80) {
             return reg_.ioWrite(addr, val);
         } else if (addr == 0xFFFF) {
-            reg_.ie_ = val; 
+            interrupt_.setIE(val);
         } else  {
             ram_.writeHRAM(addr, val);
         }

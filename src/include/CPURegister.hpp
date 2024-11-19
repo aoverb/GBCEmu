@@ -13,7 +13,6 @@ public:
     uint8_t d_, e_;
     uint8_t h_, l_;
     uint16_t sp_, pc_;
-    uint8_t ie_;
     char serialData[2];
 
     void setFlags(int z, int n, int h, int c);

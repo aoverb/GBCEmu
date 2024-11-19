@@ -29,6 +29,7 @@ protected:
     Bus bus_;
     RAM ram_;
     UI ui_;
+    Interrupt interrupt_;
     CPURegister reg_;
     Cycle cycle_;
     Cartridge cartridge_;

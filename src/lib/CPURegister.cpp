@@ -78,7 +78,6 @@ namespace GBCEmu {
             case RegType::AF: return (a_ << 8) | f_;
             case RegType::SP: return sp_;
             case RegType::PC: return pc_;
-            case RegType::IE: return ie_;
         }
         throw std::out_of_range("unknow writeReg type");
     }
@@ -100,7 +99,6 @@ namespace GBCEmu {
             case RegType::AF: a_ = (val & 0xFF00) >> 8; f_ = val & 0xF0; return;
             case RegType::SP: sp_ = val; return;
             case RegType::PC: pc_ = val; return;
-            case RegType::IE: ie_ = val & 0xFF; return;
         }
         throw std::out_of_range("unknow writeReg type");
     }

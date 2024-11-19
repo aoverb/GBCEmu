@@ -1,7 +1,8 @@
 #include "CPUContext.hpp"
 namespace GBCEmu {
 
-CPUContext::CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle) : bus_(bus), reg_(reg), cycle_(cycle) {
+CPUContext::CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle, Interrupt& interrupt) : bus_(bus), reg_(reg), cycle_(cycle),
+    interrupt_(interrupt) {
     PROCESSOR_[InstType::NOP] = [this]() { this->nop(); };
     PROCESSOR_[InstType::LD] = [this]() { this->ld(); };
     PROCESSOR_[InstType::LDH] = [this]() { this->ldh(); };
@@ -167,12 +168,12 @@ void CPUContext::stackPush16(uint16_t val)
 
 void CPUContext::ei()
 {
-    enablingIME_ = true;
+    interrupt_.setEnablingIME_(true);
 }
 
 void CPUContext::di()
 {
-    interruptEnabled_ = false;
+    interrupt_.setEnablingIME_(false);
 }
 
 void CPUContext::go2(uint16_t addr, bool pushPC)
@@ -210,7 +211,7 @@ void CPUContext::ret()
 
 void CPUContext::reti()
 {
-    interruptEnabled_ = true;
+    interrupt_.setInterruptEnabled(true);
     ret();
 }
 
@@ -578,41 +579,6 @@ void CPUContext::process()
         return;
     }
     throw std::runtime_error("failed to find processor of instType:" + static_cast<int>(curInst_.type));
-}
-
-void CPUContext::requestInterrupt(InterruptType interrupt)
-{
-    
-}
-
-void CPUContext::handleInterrupt()
-{
-    if ((intFlag_ & static_cast<uint8_t>(InterruptType::VBLANK)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::VBLANK))) {
-        handleByAddress(0x40);
-        intFlag_ &= ~static_cast<uint8_t>(InterruptType::VBLANK);
-        halt_ = false;
-        interruptEnabled_ = false;
-    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::LCD_STAT)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::LCD_STAT))) {
-        handleByAddress(0x48);
-        intFlag_ &= ~static_cast<uint8_t>(InterruptType::LCD_STAT);
-        halt_ = false;
-        interruptEnabled_ = false;
-    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::TIMER)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::TIMER))) {
-        handleByAddress(0x50);
-        intFlag_ &= ~static_cast<uint8_t>(InterruptType::TIMER);
-        halt_ = false;
-        interruptEnabled_ = false;
-    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::SERIAL)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::SERIAL))) {
-        handleByAddress(0x58);
-        intFlag_ &= ~static_cast<uint8_t>(InterruptType::SERIAL);
-        halt_ = false;
-        interruptEnabled_ = false;
-    } else if ((intFlag_ & static_cast<uint8_t>(InterruptType::JOYPAD)) && (reg_.ie_ & static_cast<uint8_t>(InterruptType::JOYPAD))) {
-        handleByAddress(0x60);
-        intFlag_ &= ~static_cast<uint8_t>(InterruptType::JOYPAD);
-        halt_ = false;
-        interruptEnabled_ = false;
-    } 
 }
 
 void CPUContext::handleByAddress(uint16_t addr)

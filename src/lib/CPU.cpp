@@ -29,7 +29,6 @@ void CPU::reset()
     context_.reg_.sp_ = 0xFFFE; // 初始化堆栈指针
     context_.reg_.pc_ = 0x0100; // 游戏开始执行地址
     context_.halt_ = false;
-    context_.interruptEnabled_ = true;
 }
 
 
@@ -278,17 +277,17 @@ bool CPU::step()
 
         cycle_.cycle(1);
 
-        if (context_.intFlag_) {
+        if (interrupt_.getIntFlags()) {
             context_.halt_ = false;
         }
 
-        if (context_.interruptEnabled_) {
+        if (interrupt_.getInterruptEnabled()) {
             // context_.handleInterrupts();
-            context_.enablingIME_ = false;
+            interrupt_.setEnablingIME_(false);
         }
 
-        if (context_.enablingIME_) {
-            context_.interruptEnabled_ = true;
+        if (interrupt_.getEnablingIME_()) {
+            interrupt_.setInterruptEnabled(true);
         }
     }
     return true;
