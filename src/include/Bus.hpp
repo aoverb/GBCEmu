@@ -3,13 +3,14 @@
 #include "Cartridge.hpp"
 #include "CPURegister.hpp"
 #include "RAM.hpp"
+#include "PPU.hpp"
 #include "IO.hpp"
 #include "Interrupt.hpp"
 
 namespace GBCEmu {
 class Bus {
 public:
-    Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt, IO& io);
+    Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt, IO& io, PPU& ppu);
     ~Bus();
 
     uint8_t read(uint16_t addr);
@@ -20,6 +21,7 @@ protected:
     Cartridge& cart_;
     RAM& ram_;
     IO& io_;
+    PPU& ppu_;
     CPURegister& reg_;
     Interrupt& interrupt_;
     

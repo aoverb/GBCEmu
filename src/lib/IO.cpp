@@ -11,6 +11,7 @@ namespace GBCEmu {
 
     uint8_t IO::read(uint16_t addr)
     {
+        static uint8_t ranno = 0x95;
         if (addr == 0xFF01) {
             return serialData[0];
         }
@@ -25,7 +26,7 @@ namespace GBCEmu {
             return interrupt_.getIntFlag();
         }
         // std::cerr << "CPURegister::ioRead UNSUPPORTED: " << std::hex << addr << "\n";
-        return 0;
+        return ranno++;
     }
 
     void IO::write(uint16_t addr, uint8_t val)

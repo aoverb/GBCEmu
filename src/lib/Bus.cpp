@@ -14,7 +14,8 @@
 // 0xFF00 - 0xFF7F : I/O Registers
 
 namespace GBCEmu {
-    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt, IO& io) : cart_(cart), ram_(ram), reg_(reg), interrupt_(interrupt), io_(io)
+    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt, IO& io, PPU& ppu)
+        : cart_(cart), ram_(ram), reg_(reg), interrupt_(interrupt), io_(io), ppu_(ppu)
     {
     }
 
@@ -27,7 +28,7 @@ namespace GBCEmu {
         if (addr < 0x8000) {
             return cart_.read(addr);
         } else if (addr < 0xA000) {
-           // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
+           return ppu_.readVRAM(addr);
         } else if (addr < 0xC000) {
             return cart_.read(addr);
         } else if (addr < 0xE000) {
@@ -35,11 +36,9 @@ namespace GBCEmu {
         } else if (addr < 0xFE00) {
             // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFEA0) {
-            // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
             return 0;
         } else if (addr < 0xFF00) {
-            // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
-            return 0;
+            return ppu_.readOAM(addr);
         } else if (addr < 0xFF80) {
             return io_.read(addr);
         } else if (addr == 0xFFFF) {
@@ -65,7 +64,7 @@ namespace GBCEmu {
             cart_.write(addr, val);
             return;
         } else if (addr < 0xA000) {
-            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            ppu_.writeVRAM(addr, val);
         } else if (addr < 0xC000) {
             cart_.write(addr, val);
         } else if (addr < 0xE000) {
@@ -74,7 +73,7 @@ namespace GBCEmu {
         } else if (addr < 0xFE00) {
             // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFEA0) {
-            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
+            ppu_.writeOAM(addr, val);
         } else if (addr < 0xFF00) {
             // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
         } else if (addr < 0xFF80) {

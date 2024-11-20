@@ -1,13 +1,7 @@
 #include "UI.hpp"
-#include <SDL.h>
-
-SDL_Window *sdlWindow;
-SDL_Renderer *sdlRenderer;
-SDL_Texture *sdlTexture;
-SDL_Surface *screen;
 
 namespace GBCEmu {
-    UI::UI(EmuContext& context) : context_(context)
+    UI::UI(EmuContext& context, Bus& bus) : context_(context), bus_(bus)
     {
     }
 
@@ -19,7 +13,16 @@ namespace GBCEmu {
         SDL_Init(SDL_INIT_VIDEO);
         printf("SDL INIT\n");
 
-        SDL_CreateWindowAndRenderer(768, 1024, 0, &sdlWindow, &sdlRenderer);
+        SDL_CreateWindowAndRenderer(screenWidth_, screenHeight_, 0, &sdlWindow_, &sdlRenderer_);
+
+        SDL_CreateWindowAndRenderer(16 * 8 * scale_, 32 * 8 * scale_, 0, &sdlDbgWindow_, &sdlDbgRenderer_);
+        dbgScreen_ = SDL_CreateRGBSurface(0, 16 * 8 * scale_ + 16 * scale_, 32 * 8 * scale_ + 64 * scale_, 32,
+            0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        sdlDbgTexture_ = SDL_CreateTexture(sdlDbgRenderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING,
+            16 * 8 * scale_ + 16 * scale_, 32 * 8 * scale_ + 64 * scale_);
+        int x, y;
+        SDL_GetWindowPosition(sdlWindow_, &x, &y);
+        SDL_SetWindowPosition(sdlDbgWindow_, x + screenWidth_ + 10, y);
     }
 
     void UI::delay(uint32_t ms) {
@@ -35,6 +38,60 @@ namespace GBCEmu {
             //TODO SDL_UpdateWindowSurface(sdlDebugWindow);
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
                 context_.die = true;
+            }
+        }
+    }
+    void UI::update()
+    {
+        updateDebugWindow();
+    }
+
+    void UI::updateDebugWindow()
+    {
+        int xDraw = 0;
+        int yDraw = 0;
+        int tileNum = 0;
+        SDL_Rect rc;
+        rc.x = 0;
+        rc.y = 0;
+        rc.w = dbgScreen_->w;
+        rc.h = dbgScreen_->h;
+
+        // SDL_FillRect(dbgScreen_, &rc, 0xFF11111111);
+
+        uint16_t addr = 0x8000;
+
+        for (int y = 0; y < 24; y++) {
+            for (int x = 0; x < 16; x++) {
+                displayTile(dbgScreen_, addr, tileNum++, xDraw + (x * scale_), yDraw + (y * scale_));
+                xDraw += (8 * scale_);
+            }
+            yDraw += (8 * scale_);
+            xDraw = 0;
+        }
+
+        SDL_UpdateTexture(sdlDbgTexture_, NULL, dbgScreen_->pixels, dbgScreen_->pitch);
+        SDL_RenderClear(sdlDbgRenderer_);
+        SDL_RenderCopy(sdlDbgRenderer_, sdlDbgTexture_, NULL, NULL);
+        SDL_RenderPresent(sdlDbgRenderer_);
+    }
+    void UI::displayTile(SDL_Surface *surface, uint16_t startLoc, uint16_t tileNum, int x, int y)
+    {
+        SDL_Rect rc;
+        for (int tileY = 0; tileY < 16; tileY += 2) {
+            uint8_t b2 = bus_.read(startLoc + (tileNum * 16) + tileY);
+            uint8_t b1 = bus_.read(startLoc + (tileNum * 16) + tileY + 1);
+
+            for (int bit = 7; bit >= 0; bit--) {
+                uint8_t hi = !!(b1 & (1 << bit)) << 1;
+                uint8_t lo = !!(b2 & (1 << bit));
+                uint8_t color = hi | lo;
+                rc.x = x + ((7 - bit) * scale_);
+                rc.y = y + (tileY / 2 * scale_);
+                rc.w = scale_;
+                rc.h = scale_;
+
+                SDL_FillRect(surface, &rc, color_[color]);
             }
         }
     }

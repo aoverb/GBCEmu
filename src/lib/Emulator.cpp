@@ -7,7 +7,8 @@
 namespace GBCEmu {
 
 // 构造函数
-Emulator::Emulator() : ui_(context_), timer_(interrupt_), cycle_(context_, timer_), io_(timer_, interrupt_), bus_(cartridge_, ram_, reg_, interrupt_, io_), cpu_(bus_, reg_, cycle_, interrupt_)
+Emulator::Emulator() : ui_(context_, bus_), timer_(interrupt_), cycle_(context_, timer_), io_(timer_, interrupt_),
+    bus_(cartridge_, ram_, reg_, interrupt_, io_, ppu_), cpu_(bus_, reg_, cycle_, interrupt_)
 {
     // 初始化其他模块
 }
@@ -50,6 +51,7 @@ int Emulator::run(int argc, char* argv[])
     while (!context_.die) {
         ui_.handleEvents();
         ui_.delay(10);
+        ui_.update();
     }
     if (t.joinable()) {
         t.join();

@@ -31,6 +31,7 @@ protected:
     RAM ram_;
     UI ui_;
     IO io_;
+    PPU ppu_;
     Interrupt interrupt_;
     Timer timer_;
     CPURegister reg_;
