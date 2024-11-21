@@ -44,4 +44,19 @@ namespace GBCEmu {
         }
         return false;
     }
+    uint8_t Interrupt::busRead(uint16_t addr)
+    {
+        if (addr == 0xFFFF) {
+            return getIE();
+        }
+        throw std::out_of_range("RAM::busRead out of range!");
+    }
+    void Interrupt::busWrite(uint16_t addr, uint8_t value)
+    {
+        if (addr == 0xFFFF) {
+            setIE(value);
+            return;
+        }
+        throw std::out_of_range("RAM::busRead out of range!");
+    }
 }

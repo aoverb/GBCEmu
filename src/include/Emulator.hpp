@@ -7,6 +7,8 @@
 #include "UI.hpp"
 #include "CPU.hpp"
 #include "Bus.hpp"
+#include "RAM.hpp"
+#include "PPU.hpp"
 #include "CPURegister.hpp"
 #include "Cycle.hpp"
 #include "Timer.hpp"

@@ -14,76 +14,60 @@
 // 0xFF00 - 0xFF7F : I/O Registers
 
 namespace GBCEmu {
-    Bus::Bus(Cartridge& cart, RAM& ram, CPURegister& reg, Interrupt& interrupt, IO& io, PPU& ppu)
-        : cart_(cart), ram_(ram), reg_(reg), interrupt_(interrupt), io_(io), ppu_(ppu)
+    static BusRWInterface* deviceArray_[65536] = {nullptr};
+    Bus::Bus()
     {
+
     }
 
     Bus::~Bus()
     {
     }
+
+    void Bus::regDevice(uint16_t start, uint16_t end, BusRWInterface& device) {
+        if (start > end) {
+            throw std::invalid_argument("Invalid address range or null device");
+        }
+
+        for (uint32_t addr = start; addr <= end; ++addr) {
+            deviceArray_[addr] = &device;
+        }
+    }
+
     uint8_t Bus::read(uint16_t addr)
     {
-        TRACE("Bus::read, addr: " << std::hex << addr);
-        if (addr < 0x8000) {
-            return cart_.read(addr);
-        } else if (addr < 0xA000) {
-           return ppu_.readVRAM(addr);
-        } else if (addr < 0xC000) {
-            return cart_.read(addr);
-        } else if (addr < 0xE000) {
-            return ram_.readWRAM(addr);
-        } else if (addr < 0xFE00) {
-            // std::cerr << "Bus::read unspported..." << std::hex << addr << "\n";
-        } else if (addr < 0xFEA0) {
-            return 0;
-        } else if (addr < 0xFF00) {
-            return ppu_.readOAM(addr);
-        } else if (addr < 0xFF80) {
-            return io_.read(addr);
-        } else if (addr == 0xFFFF) {
-            return interrupt_.getIE();
+        // std::cout << "Bus::read, addr: " << addr << std::endl;
+        auto device = deviceArray_[addr];
+        if (device) {
+            return device->busRead(addr);
         } else {
-            return ram_.readHRAM(addr);
+            return 0;
         }
-        return 0;
+        throw std::out_of_range("Address out of range or unregistered");
     }
+
     uint16_t Bus::read16(uint16_t addr)
     {
         TRACE("Bus::read16, addr: " << std::hex << addr);
         if (addr < 0x8000) {
-            return static_cast<uint16_t>(cart_.read(addr)) | (static_cast<uint16_t>(cart_.read(addr + 1)) << 8);
+            return static_cast<uint16_t>(read(addr)) | (static_cast<uint16_t>(read(addr + 1)) << 8);
         }
         std::cerr << "Bus::read16 unsupported address: " << std::hex << addr << "\n";
         throw std::out_of_range("Bus::read16 unsupported address");
     }
+
     void Bus::write(uint16_t addr, uint8_t val)
     {
-        // std::cout << "Bus::write addr: " << std::hex << addr << "\n";
-        if (addr < 0x8000) {
-            cart_.write(addr, val);
+        auto device = deviceArray_[addr];
+        if (device) {
+            device->busWrite(addr, val);
             return;
-        } else if (addr < 0xA000) {
-            ppu_.writeVRAM(addr, val);
-        } else if (addr < 0xC000) {
-            cart_.write(addr, val);
-        } else if (addr < 0xE000) {
-            ram_.writeWRAM(addr, val);
+        } else {
             return;
-        } else if (addr < 0xFE00) {
-            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
-        } else if (addr < 0xFEA0) {
-            ppu_.writeOAM(addr, val);
-        } else if (addr < 0xFF00) {
-            // std::cerr << "Bus::write unspported..." << std::hex << addr << "\n";
-        } else if (addr < 0xFF80) {
-            return io_.write(addr, val);
-        } else if (addr == 0xFFFF) {
-            interrupt_.setIE(val);
-        } else  {
-            ram_.writeHRAM(addr, val);
         }
+        throw std::out_of_range("Address out of range or unregistered");
     }
+
     void Bus::write16(uint16_t addr, uint16_t val)
     {
         write(addr, val & 0xFF);

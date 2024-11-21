@@ -8,8 +8,16 @@ namespace GBCEmu {
 
 // 构造函数
 Emulator::Emulator() : ui_(context_, bus_), timer_(interrupt_), cycle_(context_, timer_), io_(timer_, interrupt_),
-    bus_(cartridge_, ram_, reg_, interrupt_, io_, ppu_), cpu_(bus_, reg_, cycle_, interrupt_)
+    cpu_(bus_, reg_, cycle_, interrupt_)
 {
+    bus_.regDevice(0x0000, 0x8000 - 0x1, cartridge_);
+    bus_.regDevice(0x8000, 0xA000 - 0x1, ppu_);
+    bus_.regDevice(0xA000, 0xC000 - 0x1, cartridge_);
+    bus_.regDevice(0xC000, 0xE000 - 0x1, ram_);
+    bus_.regDevice(0xFEA0, 0xFF00 - 0x1, ppu_);
+    bus_.regDevice(0xFF00, 0xFF80 - 0x1, io_);
+    bus_.regDevice(0xFF80, 0xFFFF - 0x1, ram_);
+    bus_.regDevice(0xFFFF, 0xFFFF, interrupt_);
     // 初始化其他模块
 }
 
@@ -43,7 +51,7 @@ int Emulator::run(int argc, char* argv[])
     }
     
     ui_.init();
-
+    std::cout << "cpuRun...\n";
     std::thread t([this]() {
         this->cpuRun();
     });

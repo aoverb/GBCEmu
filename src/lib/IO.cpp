@@ -55,4 +55,12 @@ namespace GBCEmu {
         }
         // std::cerr << "CPURegister::ioWrite UNSUPPORTED: " << std::hex << (int)addr << std::endl;
     }
+    uint8_t IO::busRead(uint16_t addr)
+    {
+        return read(addr);
+    }
+    void IO::busWrite(uint16_t addr, uint8_t value)
+    {
+        write(addr, value);
+    }
 }

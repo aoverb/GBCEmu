@@ -161,6 +161,8 @@ std::string Cartridge::getROMType(uint8_t code)
     return (code > sizeof(ROM_TYPES)) ? "UNKNOWN" : ROM_TYPES[code];
 }
 
+
+
 uint8_t Cartridge::read(uint16_t addr)
 {
     // std::cout << "read rom data!addr:" << std::hex <<addr << ", content: " << std::hex << static_cast<int>(romData_[addr]) << "\n";
@@ -172,4 +174,12 @@ void Cartridge::write(uint16_t addr, uint8_t val)
     // std::cerr << "Cartridge::write unspported...\n";
 }
 
+uint8_t Cartridge::busRead(uint16_t addr)
+{
+    return read(addr);
+}
+void Cartridge::busWrite(uint16_t addr, uint8_t value)
+{
+    write(addr, value);
+}
 }

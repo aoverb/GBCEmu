@@ -1,5 +1,7 @@
 #pragma once
 #include "Common.hpp"
+#include "BusRWInterface.hpp"
+
 namespace GBCEmu {
 
 typedef struct OAM {
@@ -15,7 +17,7 @@ typedef struct OAM {
     unsigned prior : 1;
 };
 
-class PPU {
+class PPU : public BusRWInterface {
 public:
     PPU();
     ~PPU();
@@ -24,6 +26,8 @@ public:
     void writeOAM(uint16_t addr, uint8_t val);
     uint8_t readVRAM(uint16_t addr);
     void writeVRAM(uint16_t addr, uint8_t val);
+    virtual uint8_t busRead(uint16_t addr) final;
+    virtual void busWrite(uint16_t addr, uint8_t value) final;
 protected:
     OAM oam_[40];
     uint8_t vram_[0x2000];

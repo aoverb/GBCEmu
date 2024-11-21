@@ -39,4 +39,25 @@ namespace GBCEmu {
     {
         vram_[addr - 0x8000] = val;
     }
+
+    uint8_t PPU::busRead(uint16_t addr)
+    {
+        if (addr >= 0x8000 && addr < 0xA000) {
+            return readVRAM(addr);
+        } else if (addr >= 0xFEA0 && addr < 0xFF00) {
+            return readOAM(addr);
+        }
+        throw std::out_of_range("PPU::busRead out of range!");
+    }
+    void PPU::busWrite(uint16_t addr, uint8_t value)
+    {
+        if (addr >= 0x8000 && addr < 0xA000) {
+            writeVRAM(addr, value);
+            return;
+        } else if (addr >= 0xFF80 && addr < 0xFFFF) {
+            writeOAM(addr, value);
+            return;
+        }
+        throw std::out_of_range("PPU::busWrite out of range!");
+    }
 }

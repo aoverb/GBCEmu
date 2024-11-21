@@ -1,9 +1,9 @@
 #pragma once
 #include "Common.hpp"
-
+#include "BusRWInterface.hpp"
 namespace GBCEmu {
 
-class Cartridge {
+class Cartridge : public BusRWInterface {
 public:
     typedef struct {
         uint8_t entry[4];
@@ -25,6 +25,8 @@ public:
     void load(const std::string& filePath);
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t val);
+    virtual uint8_t busRead(uint16_t addr) final;
+    virtual void busWrite(uint16_t addr, uint8_t value) final;
 protected:
     std::string getLicCode(uint8_t code);
     std::string getROMType(uint8_t code);

@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.hpp"
+#include "BusRWInterface.hpp"
 
 namespace GBCEmu {
 enum class InterruptType {
@@ -10,7 +11,7 @@ enum class InterruptType {
     JOYPAD = 16
 };
 
-class Interrupt {
+class Interrupt : public BusRWInterface {
 public:
     Interrupt();
     ~Interrupt();
@@ -40,6 +41,8 @@ public:
     void setEnablingIME_(bool flag) {
         enablingIME_ = flag;
     }
+    virtual uint8_t busRead(uint16_t addr) final;
+    virtual void busWrite(uint16_t addr, uint8_t value) final;
 protected:
     uint8_t intFlag_ = 0;
     bool interruptEnabled_ = false;

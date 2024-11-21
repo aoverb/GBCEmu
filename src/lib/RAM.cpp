@@ -39,4 +39,24 @@ void RAM::writeHRAM(uint16_t addr, uint8_t val)
      
     hram_[addr - 0xFF80] = val;
 }
+uint8_t RAM::busRead(uint16_t addr)
+{
+    if (addr >= 0xC000 && addr < 0xE000) {
+        return readWRAM(addr);
+    } else if (addr >= 0xFF80 || addr < 0xFFFF) {
+        return readHRAM(addr);
+    }
+    throw std::out_of_range("RAM::busRead out of range!");
+}
+void RAM::busWrite(uint16_t addr, uint8_t value)
+{
+    if (addr >= 0xC000 && addr < 0xE000) {
+        writeWRAM(addr, value);
+        return;
+    } else if (addr >= 0xFF80 && addr < 0xFFFF) {
+        writeHRAM(addr, value);
+        return;
+    }
+    throw std::out_of_range("RAM::busRead out of range!");
+}
 }

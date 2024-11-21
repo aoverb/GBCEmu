@@ -211,24 +211,9 @@ void CPU::fetchInst()
     FUNC_TRACE("CPU::fetchInst");
     try {
         uint16_t pc = context_.reg_.pc_;
+
         context_.curOpcode_ = context_.bus_.read(context_.reg_.pc_++);
         context_.curInst_ = ::std::move(getInstructionByOpCode(context_.curOpcode_));
-        /*
-        std::cout << context_.reg_.pc_ - 1 << "\t Opcode:" << inst_lookup[static_cast<int>(context_.curInst_.type)] <<
-            " " << (int)context_.bus_.read(context_.reg_.pc_ - 1) <<
-            " " << (int)context_.bus_.read(context_.reg_.pc_) <<
-            " " << (int)context_.bus_.read(context_.reg_.pc_ + 1) << "\t"
-            << "A " << (int)context_.reg_.a_ << "\t"
-            << "B " << (int)context_.reg_.b_ << "\t"
-            << "C " << (int)context_.reg_.c_ << "\t"
-            << "D " << (int)context_.reg_.d_ << "\t"
-            << "E " << (int)context_.reg_.e_ << "\t"
-            << "H " << (int)context_.reg_.h_ << "\t"
-            << "L " << (int)context_.reg_.l_ << "\t"
-            << "F " << (int)context_.reg_.f_ << "\t"
-            << "SP " << context_.reg_.sp_ << "\n";
-        */
-        
     } catch (std::exception ex) {
         std::cerr << "CPU::fetchInst catches exception: " << ex.what() << "\n";
     } catch (...) {
