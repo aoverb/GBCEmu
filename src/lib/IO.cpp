@@ -48,6 +48,11 @@ namespace GBCEmu {
             interrupt_.setIntFlag(val);
             return;
         }
+
+        if (addr == 0xFF46) {
+            // dma_.start(val);
+            // std::cerr << "DMA Start!" << std::endl;
+        }
         // std::cerr << "CPURegister::ioWrite UNSUPPORTED: " << std::hex << (int)addr << std::endl;
     }
 }
