@@ -1,7 +1,7 @@
 #include "UI.hpp"
 
 namespace GBCEmu {
-    UI::UI(EmuContext& context, Bus& bus) : context_(context), bus_(bus)
+    UI::UI(EmuContext& context, Bus& bus, PPU& ppu) : context_(context), bus_(bus), ppu_(ppu)
     {
     }
 
@@ -15,9 +15,16 @@ namespace GBCEmu {
 
         SDL_CreateWindowAndRenderer(screenWidth_, screenHeight_, 0, &sdlWindow_, &sdlRenderer_);
 
+
         SDL_CreateWindowAndRenderer(16 * 8 * scale_, 32 * 8 * scale_, 0, &sdlDbgWindow_, &sdlDbgRenderer_);
+
+        screen_ = SDL_CreateRGBSurface(0, screenWidth_, screenHeight_, 32,
+            0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+
         dbgScreen_ = SDL_CreateRGBSurface(0, 16 * 8 * scale_ + 16 * scale_, 32 * 8 * scale_ + 64 * scale_, 32,
             0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        sdlTexture_ = SDL_CreateTexture(sdlRenderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING,
+            screenWidth_, screenHeight_);
         sdlDbgTexture_ = SDL_CreateTexture(sdlDbgRenderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING,
             16 * 8 * scale_ + 16 * scale_, 32 * 8 * scale_ + 64 * scale_);
         int x, y;
@@ -43,7 +50,30 @@ namespace GBCEmu {
     }
     void UI::update()
     {
+        updateEmuWindow();
         updateDebugWindow();
+    }
+
+    void UI::updateEmuWindow()
+    {
+        SDL_Rect rc;
+        rc.x = rc.y = 0;
+        rc.w = 2048;
+        rc.h = 2048;
+        Color* videoBuffer = ppu_.getVideoBuffer();
+        for (int lineNum = 0; lineNum < YRES; ++lineNum) {
+            for (int x = 0; x < XRES; ++x) {
+                rc.x = x * scale_;
+                rc.y = lineNum * scale_;
+                rc.w = scale_;
+                rc.h = scale_;
+                SDL_FillRect(screen_, &rc, videoBuffer[x + (lineNum * XRES)]);
+            }
+        }
+        SDL_UpdateTexture(sdlTexture_, NULL, screen_->pixels,screen_->pitch);
+        SDL_RenderClear(sdlRenderer_);
+        SDL_RenderCopy(sdlRenderer_, sdlTexture_, NULL, NULL);
+        SDL_RenderPresent(sdlRenderer_);
     }
 
     void UI::updateDebugWindow()

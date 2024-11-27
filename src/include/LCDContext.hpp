@@ -2,7 +2,7 @@
 #include "Common.hpp"
 namespace GBCEmu {
 enum class LCDMODE {
-    HBLANK, VBLANK, OAM, TRANSFER
+    HBLANK = 0, VBLANK = 1, OAM = 2, TRANSFER = 3
 };
 
 enum class STATSRC {
@@ -118,6 +118,26 @@ typedef struct LCDContext {
 
         for (int i = 0; i < 4; i++) {
             palettePtr[i] = defaultColor[(data >> (i * 2)) & 0b11];
+        }
+    }
+
+    void init()
+    {
+        lcdc_ = 0x91;
+        scrX_ = 0;
+        scrY_ = 0;
+        ly_ = 00;
+        lyc_ = 0;
+        bgPalette_ = 0xFC;
+        objPalette_[0] = 0xFF;
+        objPalette_[1] = 0xFF;
+        winX = 0;
+        winY = 0;
+
+        for (int i = 0; i < 4; i++) {
+            bgColor_[i] = defaultColor[i];
+            sp1Color_[i] = defaultColor[i];
+            sp2Color_[i] = defaultColor[i];
         }
     }
 };

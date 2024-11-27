@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string>
 #include <Array>
+#include <queue>
 #include <exception>
 #include <vector>
 #include <iostream>
@@ -32,7 +33,7 @@ inline uint16_t reverse(uint16_t n) {
 
 inline int getBit(uint64_t n, uint64_t digit)
 {
-    return n & (1 << digit) ? 1 : 0;
+    return (n & (1 << digit)) ? 1 : 0;
 }
 
 inline void setBit(uint16_t& n, uint64_t digit, bool val)
