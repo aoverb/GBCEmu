@@ -1,7 +1,7 @@
 #include "Cycle.hpp"
 
 namespace GBCEmu {
-Cycle::Cycle(EmuContext& emuContext, Timer& timer) : emuContext_(emuContext), timer_(timer)
+Cycle::Cycle(EmuContext& emuContext, Timer& timer, DMA& dma, PPU& ppu) : emuContext_(emuContext), timer_(timer), dma_(dma), ppu_(ppu)
 {
 }
 
@@ -11,11 +11,13 @@ Cycle::~Cycle()
 
 void Cycle::cycle(uint8_t c)
 {
-    int n = c * 4;
-
-    for (int i = 0; i < n; ++i) {
-        ++emuContext_.ticks;
-        timer_.tick();
+    for (int i = 0; i < c; i++) {
+        int n = 4;
+        while (n--) {
+            emuContext_.ticks++;
+            timer_.tick();
+            ppu_.tick();
+        }
     }
 }
 }

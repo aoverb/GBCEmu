@@ -1,7 +1,7 @@
 #include "IO.hpp"
 
 namespace GBCEmu {
-    IO::IO(Timer& timer, Interrupt& interrupt) : timer_(timer), interrupt_(interrupt)
+    IO::IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd) : timer_(timer), interrupt_(interrupt), dma_(dma), lcd_(lcd)
     {
     }
 
@@ -11,7 +11,6 @@ namespace GBCEmu {
 
     uint8_t IO::read(uint16_t addr)
     {
-        static uint8_t ranno = 0x95;
         if (addr == 0xFF01) {
             return serialData[0];
         }
@@ -25,8 +24,12 @@ namespace GBCEmu {
         if (addr == 0xFF0F) {
             return interrupt_.getIntFlag();
         }
+
+        if (between(addr, 0xFF40, 0xFF4B)) {
+            return lcd_.read(addr);
+        }
         // std::cerr << "CPURegister::ioRead UNSUPPORTED: " << std::hex << addr << "\n";
-        return ranno++;
+        return 0;
     }
 
     void IO::write(uint16_t addr, uint8_t val)
@@ -49,10 +52,10 @@ namespace GBCEmu {
             return;
         }
 
-        if (addr == 0xFF46) {
-            // dma_.start(val);
-            // std::cerr << "DMA Start!" << std::endl;
-        }
+        if (between(addr, 0xFF40, 0xFF4B)) {
+            lcd_.write(addr, val);
+            return;
+        } 
         // std::cerr << "CPURegister::ioWrite UNSUPPORTED: " << std::hex << (int)addr << std::endl;
     }
     uint8_t IO::busRead(uint16_t addr)

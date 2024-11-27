@@ -9,8 +9,10 @@
 #include "Bus.hpp"
 #include "RAM.hpp"
 #include "PPU.hpp"
+#include "LCD.hpp"
 #include "CPURegister.hpp"
 #include "Cycle.hpp"
+#include "DMA.hpp"
 #include "Timer.hpp"
 #include "Cartridge.hpp"
 #include "EmuContext.hpp"
@@ -34,6 +36,8 @@ protected:
     UI ui_;
     IO io_;
     PPU ppu_;
+    DMA dma_;
+    LCD lcd_;
     Interrupt interrupt_;
     Timer timer_;
     CPURegister reg_;

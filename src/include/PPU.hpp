@@ -1,9 +1,14 @@
 #pragma once
 #include "Common.hpp"
+#include "LCDContext.hpp"
+#include "Interrupt.hpp"
 #include "BusRWInterface.hpp"
 
 namespace GBCEmu {
-
+constexpr int LINES_PER_FRAME = 154;
+constexpr int TICKS_PER_LINE = 456;
+constexpr int XRES = 144;
+constexpr int YRES = 160;
 typedef struct OAM {
     uint8_t x;
     uint8_t y;
@@ -19,7 +24,7 @@ typedef struct OAM {
 
 class PPU : public BusRWInterface {
 public:
-    PPU();
+    PPU(LCDContext& lcd, Interrupt& interrupt);
     ~PPU();
     void tick();
     uint8_t readOAM(uint16_t addr);
@@ -28,9 +33,23 @@ public:
     void writeVRAM(uint16_t addr, uint8_t val);
     virtual uint8_t busRead(uint16_t addr) final;
     virtual void busWrite(uint16_t addr, uint8_t value) final;
+    uint32_t getCurrentFrame();
 protected:
     OAM oam_[40];
     uint8_t vram_[0x2000];
+    uint32_t currentFrame_;
+    uint32_t lineTicks_;
+    uint32_t* videoBuffer_;
+    LCDContext& lcd_;
+    Interrupt& interrupt_;
+    uint32_t prevFrameTime_;
+    uint32_t startTimer_ = 0;
+    uint32_t frameCount_ = 0;
 
+    void oam();
+    void xfer();
+    void vBlank();
+    void hBlank();
+    void incLy();
 };
 }

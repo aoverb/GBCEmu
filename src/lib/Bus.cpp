@@ -17,7 +17,6 @@ namespace GBCEmu {
     static BusRWInterface* deviceArray_[65536] = {nullptr};
     Bus::Bus()
     {
-
     }
 
     Bus::~Bus()
@@ -58,6 +57,10 @@ namespace GBCEmu {
 
     void Bus::write(uint16_t addr, uint8_t val)
     {
+        // std::cerr << "Bus::write" << std::hex << (int)addr << ": " << (int)val << std::endl;
+        if (addr == 0xFF44) {
+            std::cerr << "Bus::write" << std::hex << (int)addr << ": " << (int)val << std::endl;
+        }
         auto device = deviceArray_[addr];
         if (device) {
             device->busWrite(addr, val);

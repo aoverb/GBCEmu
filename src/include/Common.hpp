@@ -59,4 +59,5 @@ inline bool between(uint64_t a, uint64_t b, uint64_t c)
 }
 
 void delay(uint32_t ms);
+uint32_t getTicks();
 }
