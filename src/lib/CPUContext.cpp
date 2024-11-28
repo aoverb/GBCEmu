@@ -211,7 +211,7 @@ void CPUContext::ret()
 
 void CPUContext::reti()
 {
-    interrupt_.setInterruptEnabled(true);
+    interrupt_.setEnablingIME_(true);
     ret();
 }
 

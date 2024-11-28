@@ -29,12 +29,6 @@ public:
     void setIE(uint8_t flag) {
         ie_ = flag;
     }
-    bool getInterruptEnabled() {
-        return interruptEnabled_;
-    }
-    void setInterruptEnabled(bool flag) {
-        interruptEnabled_ = flag;
-    }
     bool getEnablingIME_() {
         return enablingIME_;
     }

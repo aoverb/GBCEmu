@@ -257,28 +257,24 @@ bool CPU::step()
             context_.bus_.read(pc + 1), context_.bus_.read(pc + 2), context_.reg_.a_, flags, context_.reg_.b_, context_.reg_.c_,
             context_.reg_.d_, context_.reg_.e_, context_.reg_.h_, context_.reg_.l_); 
 #endif
-        dbger.dbg_update();
+        // dbger.dbg_update();
         execute();
     } else {
 
         cycle_.cycle(1);
 
-        if (interrupt_.getIntFlag()) {
+        if (interrupt_.getIntFlag() & interrupt_.getIE()) {
             context_.halt_ = false;
         }
     }
 
-    if (interrupt_.getInterruptEnabled()) {
+    if (interrupt_.getIE()) {
         uint16_t addr;
-        if (interrupt_.handleInterrupt(addr)) {
+        if (interrupt_.getEnablingIME_() && interrupt_.handleInterrupt(addr)) {
             context_.handleByAddress(addr);
-            context_.halt_ = false;
+            context_.halt_ = false; // 中断时确保解除HALT状态
+            interrupt_.setEnablingIME_(false);
         }
-        interrupt_.setEnablingIME_(false);
-    }
-
-    if (interrupt_.getEnablingIME_()) {
-        interrupt_.setInterruptEnabled(true);
     }
     return true;
 }

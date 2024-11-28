@@ -117,11 +117,16 @@ namespace GBCEmu {
         switch(pfc_.state) {
             case FetchState::TILE:
                 {
+                    fetchedEntryCount_ = 0;
                     if (lcd_.bgwEnable()) {
                         pfc_.bgFetchData[0] = bus_.read(lcd_.bgMapArea() + (pfc_.mapX / 8 + pfc_.mapY / 8 * 32) );
                         if (lcd_.bgwDataArea() == 0x8800) {
                             pfc_.bgFetchData[0] += 128;
                         }
+                    }
+
+                    if (lcd_.objEnable() && !spriteQueue.empty()) {
+                        pipelineLoadSpriteTile();
                     }
 
                     pfc_.state = FetchState::DATALOW;
@@ -132,12 +137,14 @@ namespace GBCEmu {
                 {
                     pfc_.bgFetchData[1] = bus_.read(lcd_.bgwDataArea() + (pfc_.bgFetchData[0]) * 16 + pfc_.tileY);
                     pfc_.state = FetchState::DATAHIGH;
+                    pipelineLoadSpriteData(0);
                     break;
                 }
             case FetchState::DATAHIGH:
                 {
                     pfc_.bgFetchData[2] = bus_.read(lcd_.bgwDataArea() + (pfc_.bgFetchData[0]) * 16 + pfc_.tileY + 1);
                     pfc_.state = FetchState::SLEEP;
+                    pipelineLoadSpriteData(1);
                     break;
                 }
             case FetchState::SLEEP:
@@ -194,11 +201,123 @@ namespace GBCEmu {
             uint8_t lo = !!(pfc_.bgFetchData[1] & (1 << bit));
             uint8_t hi = !!(pfc_.bgFetchData[2] & (1 << bit)) << 1;
             Color color = lcd_.bgColor_[hi | lo];
+
+            if(!lcd_.bgwEnable()) {
+                color = lcd_.bgColor_[0];
+            }
+            if(lcd_.objEnable()) {
+                color = fetchSpritePixels(bit, color, hi | lo);
+            }
+
             if (x >= 0) {
                 pfc_.pixelStack.push(color);
             }
         }
         return true;
+    }
+
+    void PPU::pipelineLoadSpriteTile()
+    {
+        std::priority_queue<std::pair<OAM, int>, std::vector<std::pair<OAM, int>>, SpriteComparator> localSpriteQueue = spriteQueue;
+        while (!localSpriteQueue.empty()) {
+            const OAM& sprite = localSpriteQueue.top().first;  // 取出精灵数据
+            int index = localSpriteQueue.top().second;         // 取出精灵的索引
+
+            int spX = (sprite.x - 8) + (lcd_.scrX_ % 8);
+            if ((spX >= pfc_.fetchX && spX < pfc_.fetchX + 8) ||
+                (spX + 8 >= pfc_.fetchX && spX + 8 < pfc_.fetchX + 8)) {
+                fetchedEntries_[fetchedEntryCount_++] = sprite;
+            }
+            localSpriteQueue.pop();  // 移除当前元素
+
+            if (localSpriteQueue.empty() || fetchedEntryCount_ >= 3) {
+                break;
+            }
+        }
+    }
+
+    void PPU::pipelineLoadSpriteData(uint8_t offset)
+    {
+        int curY = lcd_.ly_;
+        uint8_t spriteHeight = lcd_.objHeight();
+        for (int i = 0; i < fetchedEntryCount_; i++) {
+            uint8_t tileY = ((curY + 16) - fetchedEntries_[i].y) * 2;
+
+            if (fetchedEntries_[i].yFlip) {
+                tileY = ((spriteHeight * 2) - 2) - tileY;
+            }
+
+            uint8_t tileIndex = fetchedEntries_[i].tile;
+
+            if (spriteHeight == 16) {
+                tileIndex &= (-1);
+            }
+
+            pfc_.fetchEntryData[(i * 2) + offset] = bus_.read(0x8000 + (tileIndex * 16) + tileY + offset);
+        }
+    }
+
+    void PPU::loadLineSprites()
+    {
+        int curY = lcd_.ly_;
+
+        uint8_t spriteHeight = lcd_.objHeight();
+
+        for (int i = 0; i < 40; i++) {
+            OAM& curEntry = oam_[i];
+
+            if (!curEntry.x) {
+                continue;
+            }
+
+            if (spriteQueue.size() >= 10) {
+                break;
+            }
+
+            if (curEntry.y <= curY + 16 && curEntry.y + spriteHeight > curY + 16) {
+                spriteQueue.emplace(curEntry, i);
+            }
+        }
+    }
+
+    Color PPU::fetchSpritePixels(uint8_t bit, Color color, uint8_t bgColor)
+    {
+        for (int i = 0; i < fetchedEntryCount_; i++) {
+            int spX = (fetchedEntries_[i].x - 8) + (lcd_.scrX_ % 8);
+
+            if (spX + 8 < pfc_.fifoX) {
+                continue;
+            }
+
+            int offset = pfc_.fifoX - spX;
+
+            if (offset < 0 || offset > 7) {
+                continue;
+            }
+
+            bit = (7 - offset);
+            if (fetchedEntries_[i].xFlip) {
+                bit = offset;
+            }
+
+            uint8_t hi = !!(pfc_.fetchEntryData[i * 2] & (1 << bit));
+            uint8_t lo = !!(pfc_.fetchEntryData[i * 2 + 1] & (1 << bit)) << 1;
+
+            bool bgPrior = fetchedEntries_[i].prior;
+
+            if (!(hi|lo)) {
+                continue;
+            }
+
+            if (!bgPrior || bgColor == 0) {
+                color = fetchedEntries_[i].paletteNum ? lcd_.sp2Color_[hi|lo] : lcd_.sp1Color_[hi|lo];
+                if (hi|lo) {
+                    break;
+                }
+            }
+        }
+
+        return color;
     }
 
     void PPU::oam()
@@ -210,6 +329,12 @@ namespace GBCEmu {
             pfc_.pushX = 0;
             pfc_.fetchX = 0;
             pfc_.fifoX = 0;
+        }
+
+        if (lineTicks_ == 1) {
+            std::queue<OAM> emptyOAM;
+            spriteQueue = std::priority_queue<std::pair<OAM, int>, std::vector<std::pair<OAM, int>>, SpriteComparator>();
+            loadLineSprites();
         }
     }
     void PPU::xfer()

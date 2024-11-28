@@ -50,7 +50,7 @@ namespace GBCEmu {
         } else if (offset == 8) {
             lcdContext_.updatePalette(1, val & 0b11111100);
         } else if (offset == 9) {
-            lcdContext_.updatePalette(0, val & 0b11111100);
+            lcdContext_.updatePalette(2, val & 0b11111100);
         } 
     }
     LCDContext &LCD::getContext()
