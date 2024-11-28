@@ -79,12 +79,15 @@ protected:
     PixelFIFOContext pfc_;
     void pushColor(Color color);
     Color popColor();
+    void pipelineLoadWindowTile();
     void pipelineFetch();
     void pipelineProcess();
     void pipelinePushPixel();
     bool pipelineAdd();
     void pipelineLoadSpriteTile();
     void pipelineLoadSpriteData(uint8_t offset);
+
+    bool windowVisible();
 
     void loadLineSprites();
     Color fetchSpritePixels(uint8_t bit, Color color, uint8_t bgColor);
@@ -103,6 +106,8 @@ protected:
 
     uint8_t fetchedEntryCount_ = 0;
     OAM fetchedEntries_[3];
+
+    uint8_t windowLine_ = 0;
 
     void oam();
     void xfer();

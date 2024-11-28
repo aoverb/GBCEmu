@@ -54,7 +54,7 @@ namespace GBCEmu {
         if (addr >= 0xFE00) {
             addr -= 0xFE00;
         }
-        std::cout << "write oam! addr: " << std::dec << (int)addr << ", val: " << (int)val << "\n";
+        // std::cout << "write oam! addr: " << std::dec << (int)addr << ", val: " << (int)val << "\n";
         
         uint8_t* ptr = reinterpret_cast<uint8_t *>(oam_);
         ptr[addr] = val;
@@ -125,6 +125,8 @@ namespace GBCEmu {
                         if (lcd_.bgwDataArea() == 0x8800) {
                             pfc_.bgFetchData[0] += 128;
                         }
+
+                        pipelineLoadWindowTile();
                     }
 
                     if (lcd_.objEnable() && !spriteQueue.empty()) {
@@ -260,6 +262,29 @@ namespace GBCEmu {
         }
     }
 
+    void PPU::pipelineLoadWindowTile()
+    {
+        if (!windowVisible()) {
+            return;
+        }
+        uint8_t winY = lcd_.winY;
+
+        if (pfc_.fetchX + 7 >= lcd_.winX && pfc_.fetchX + 7 < lcd_.winX + YRES + 14) {
+            if (lcd_.ly_ >= winY && lcd_.ly_ < winY + XRES) {
+                uint8_t wTileY = windowLine_ / 8;
+                pfc_.bgFetchData[0] = bus_.read(lcd_.winMapArea() + (pfc_.fetchX + 7 - lcd_.winX) / 8 + (wTileY * 32));
+                if (lcd_.bgwDataArea() == 0x8800) {
+                    pfc_.bgFetchData[0] += 128;
+                }
+            }
+        }
+    }
+
+    bool PPU::windowVisible()
+    {
+        return lcd_.winEnable() && lcd_.winX >= 0 && lcd_.winX <= 166 && lcd_.winY >=0 && lcd_.winY < YRES;
+    }
+
     void PPU::loadLineSprites()
     {
         int curY = lcd_.ly_;
@@ -360,6 +385,7 @@ namespace GBCEmu {
             if (lcd_.ly_ >= LINES_PER_FRAME) {
                 lcd_.setPPUMode(static_cast<uint8_t>(LCDMODE::OAM));
                 lcd_.ly_ = 0;
+                windowLine_ = 0;
             }
 
             lineTicks_ = 0;
@@ -403,6 +429,11 @@ namespace GBCEmu {
     }
     void PPU::incLy()
     {
+        if (windowVisible() && lcd_.ly_ >= lcd_.winY &&
+            lcd_.ly_ < lcd_.winY + YRES) {
+            windowLine_++;
+        }
+        
         lcd_.ly_++;
         if (lcd_.ly_ == lcd_.lyc_) {
             lcd_.setLyc(1);

@@ -40,7 +40,7 @@ namespace GBCEmu {
         uint8_t offset = (addr - 0xFF40);
         uint8_t* p = reinterpret_cast<uint8_t*>(&lcdContext_);
         p[offset] = val;
-        // std::cout << "write" << (int)offset << ": " << (int)val << std::endl;
+        
         if (offset == 6) {
             dma_.start(val);
         }

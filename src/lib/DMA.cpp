@@ -27,7 +27,7 @@ void DMA::tick()
 
 void DMA::start(uint8_t highAddr)
 {
-    highAddr = highAddr_;
+    highAddr_ = highAddr;
     active_ = true;
     relAddr_ = 0;
     delay_ = 2;
