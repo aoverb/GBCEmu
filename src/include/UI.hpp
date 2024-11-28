@@ -3,12 +3,13 @@
 #include "Common.hpp"
 #include "Bus.hpp"
 #include "PPU.hpp"
+#include "Gamepad.hpp"
 #include <SDL.h>
 
 namespace GBCEmu {
 class UI {
 public:
-    UI(EmuContext& context, Bus& bus, PPU& ppu);
+    UI(EmuContext& context, Bus& bus, PPU& ppu, Gamepad& gamepad_);
     ~UI();
     void init();
     void delay(uint32_t ms);
@@ -17,6 +18,8 @@ public:
 protected:
     Bus& bus_;
     PPU& ppu_;
+    Gamepad& gamepad_;
+    void onKey(bool down, uint32_t keyCode);
     void updateDebugWindow();
     void updateEmuWindow();
     void displayTile(SDL_Surface* surface, uint16_t startLoc, uint16_t tileNum, int x, int y);

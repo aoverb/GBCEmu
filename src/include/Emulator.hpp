@@ -16,6 +16,7 @@
 #include "Timer.hpp"
 #include "Cartridge.hpp"
 #include "EmuContext.hpp"
+#include "Gamepad.hpp"
 
 namespace GBCEmu {
 
@@ -43,6 +44,7 @@ protected:
     CPURegister reg_;
     Cycle cycle_;
     Cartridge cartridge_;
+    Gamepad gamepad_;
     // SDL2 相关成员
     ::SDL_Window* window_;
     ::SDL_Renderer* renderer_;

@@ -1,7 +1,7 @@
 #include "IO.hpp"
 
 namespace GBCEmu {
-    IO::IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd) : timer_(timer), interrupt_(interrupt), dma_(dma), lcd_(lcd)
+    IO::IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd, Gamepad& gamepad) : timer_(timer), interrupt_(interrupt), dma_(dma), lcd_(lcd), gamepad_(gamepad)
     {
     }
 
@@ -11,6 +11,9 @@ namespace GBCEmu {
 
     uint8_t IO::read(uint16_t addr)
     {
+        if (addr == 0xFF00) {
+            return gamepad_.getOutput();
+        }
         if (addr == 0xFF01) {
             return serialData[0];
         }
@@ -34,6 +37,9 @@ namespace GBCEmu {
 
     void IO::write(uint16_t addr, uint8_t val)
     {
+        if (addr == 0xFF00) {
+            gamepad_.setSel(val);
+        }
         if (addr == 0xFF01) {
             serialData[0] = val;
             return;

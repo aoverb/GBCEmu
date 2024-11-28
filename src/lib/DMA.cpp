@@ -31,7 +31,6 @@ void DMA::start(uint8_t highAddr)
     active_ = true;
     relAddr_ = 0;
     delay_ = 2;
-    std::cout << "DMA Start!" << std::endl;
 }
 bool DMA::transferring()
 {

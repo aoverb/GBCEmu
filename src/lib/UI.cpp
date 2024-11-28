@@ -1,7 +1,7 @@
 #include "UI.hpp"
 
 namespace GBCEmu {
-    UI::UI(EmuContext& context, Bus& bus, PPU& ppu) : context_(context), bus_(bus), ppu_(ppu)
+    UI::UI(EmuContext& context, Bus& bus, PPU& ppu, Gamepad& gamepad) : context_(context), bus_(bus), ppu_(ppu), gamepad_(gamepad)
     {
     }
 
@@ -36,13 +36,37 @@ namespace GBCEmu {
         SDL_Delay(ms);
     }
 
+    void UI::onKey(bool down, uint32_t keyCode) {
+        switch (keyCode) {
+            case SDLK_z:
+                gamepad_.getButtonState().b_ = down; break;
+            case SDLK_x:
+                gamepad_.getButtonState().a_ = down; break;
+            case SDLK_s:
+                gamepad_.getButtonState().start_ = down; break;
+            case SDLK_a:
+                gamepad_.getButtonState().select_ = down; break;
+            case SDLK_UP:
+                gamepad_.getButtonState().up_ = down; break;
+            case SDLK_DOWN:
+                gamepad_.getButtonState().down_ = down; break;
+            case SDLK_LEFT:
+                gamepad_.getButtonState().left_ = down; break;
+            case SDLK_RIGHT:
+                gamepad_.getButtonState().right_ = down; break;
+        }
+    }
+
     void UI::handleEvents() {
         SDL_Event e;
         if (SDL_PollEvent(&e) > 0)
-        {   
-            //TODO SDL_UpdateWindowSurface(sdlWindow);
-            //TODO SDL_UpdateWindowSurface(sdlTraceWindow);
-            //TODO SDL_UpdateWindowSurface(sdlDebugWindow);
+        {
+            if (e.type == SDL_KEYDOWN) {
+                onKey(true, e.key.keysym.sym);
+            }
+            if (e.type == SDL_KEYUP) {
+                onKey(false, e.key.keysym.sym);
+            }
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
                 context_.die = true;
             }
