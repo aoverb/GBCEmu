@@ -1,6 +1,7 @@
 #pragma once
 #include "Common.hpp"
 #include "BusRWInterface.hpp"
+#include "DMAContext.hpp"
 #ifndef BUS_HPP
 #define BUS_HPP
 namespace GBCEmu {

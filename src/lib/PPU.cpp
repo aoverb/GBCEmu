@@ -46,6 +46,7 @@ namespace GBCEmu {
         if (addr >= 0xFE00) {
             addr -= 0xFE00;
         }
+        std::cout << "readoam: " << (int)(reinterpret_cast<uint8_t *>(oam_)[addr]) << "\n";
         return reinterpret_cast<uint8_t *>(oam_)[addr];
     }
     void PPU::writeOAM(uint16_t addr, uint8_t val)
@@ -53,7 +54,8 @@ namespace GBCEmu {
         if (addr >= 0xFE00) {
             addr -= 0xFE00;
         }
-
+        std::cout << "write oam! addr: " << std::dec << (int)addr << ", val: " << (int)val << "\n";
+        
         uint8_t* ptr = reinterpret_cast<uint8_t *>(oam_);
         ptr[addr] = val;
     }
@@ -74,7 +76,7 @@ namespace GBCEmu {
     {
         if (addr >= 0x8000 && addr < 0xA000) {
             return readVRAM(addr);
-        } else if (addr >= 0xFEA0 && addr < 0xFF00) {
+        } else if (addr >= 0xFE00 && addr < 0xFEA0) {
             return readOAM(addr);
         }
         throw std::out_of_range("PPU::busRead out of range!");
@@ -84,7 +86,7 @@ namespace GBCEmu {
         if (addr >= 0x8000 && addr < 0xA000) {
             writeVRAM(addr, value);
             return;
-        } else if (addr >= 0xFEA0 && addr < 0xFF00) {
+        } else if (addr >= 0xFE00 && addr < 0xFEA0) {
             writeOAM(addr, value);
             return;
         }
@@ -211,6 +213,7 @@ namespace GBCEmu {
 
             if (x >= 0) {
                 pfc_.pixelStack.push(color);
+                pfc_.fifoX++;
             }
         }
         return true;
@@ -250,7 +253,7 @@ namespace GBCEmu {
             uint8_t tileIndex = fetchedEntries_[i].tile;
 
             if (spriteHeight == 16) {
-                tileIndex &= (-1);
+                tileIndex &= ~(1);
             }
 
             pfc_.fetchEntryData[(i * 2) + offset] = bus_.read(0x8000 + (tileIndex * 16) + tileY + offset);
@@ -264,7 +267,7 @@ namespace GBCEmu {
         uint8_t spriteHeight = lcd_.objHeight();
 
         for (int i = 0; i < 40; i++) {
-            OAM& curEntry = oam_[i];
+            OAM curEntry = oam_[i];
 
             if (!curEntry.x) {
                 continue;
@@ -273,7 +276,7 @@ namespace GBCEmu {
             if (spriteQueue.size() >= 10) {
                 break;
             }
-
+            // std::cout << "i : " << std::dec << i << "curEntry.x: " << (int)curEntry.x << "curEntry.y: " << (int)curEntry.y << "" << ", spriteHeight: " << (int)spriteHeight << ",curY + 16 = " << (int)(curY + 16) << "\n";
             if (curEntry.y <= curY + 16 && curEntry.y + spriteHeight > curY + 16) {
                 spriteQueue.emplace(curEntry, i);
             }
@@ -332,7 +335,6 @@ namespace GBCEmu {
         }
 
         if (lineTicks_ == 1) {
-            std::queue<OAM> emptyOAM;
             spriteQueue = std::priority_queue<std::pair<OAM, int>, std::vector<std::pair<OAM, int>>, SpriteComparator>();
             loadLineSprites();
         }

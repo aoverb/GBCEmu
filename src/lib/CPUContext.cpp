@@ -78,10 +78,13 @@ void CPUContext::ld()
 {
     if (writeToMemo_) {
         if (is16bitReg(curInst_.reg2)) {
+            cycle_.cycle(1);
             bus_.write16(memoDest_, fetchedData_);
         } else {
             bus_.write(memoDest_, fetchedData_);
         }
+
+        cycle_.cycle(1);
         return;
     }
 
@@ -101,7 +104,7 @@ void CPUContext::ld()
 void CPUContext::inc()
 {
     if (is16bitReg(curInst_.reg1)) {
-        // ... emu
+        cycle_.cycle(1);
     }
     uint16_t val = reg_.readReg(curInst_.reg1) + 1;
     if (curInst_.reg1 == RegType::HL && curInst_.mode == AddrMode::MR) {
@@ -123,7 +126,7 @@ void CPUContext::inc()
 void CPUContext::dec()
 {
     if (is16bitReg(curInst_.reg1)) {
-        // ... emu
+        cycle_.cycle(1);
     }
     uint16_t val = reg_.readReg(curInst_.reg1) - 1;
     if (curInst_.reg1 == RegType::HL && curInst_.mode == AddrMode::MR) {
@@ -181,10 +184,11 @@ void CPUContext::go2(uint16_t addr, bool pushPC)
     // cout << "checkcond" << checkCond()
     if (checkCond()) {
         if (pushPC) {
+            cycle_.cycle(2);
             stackPush16(reg_.pc_);
         }
         reg_.pc_ = addr;
-        // emu_.cycle(1);
+        cycle_.cycle(1);
     }
 }
 
@@ -196,16 +200,20 @@ void CPUContext::jp()
 void CPUContext::ret()
 {
     if (curInst_.cond != CondType::NONE) {
-        // emu_cycle
+        cycle_.cycle(1);
     }
 
     if (checkCond()) {
         uint16_t lo;
         lo = stackPop();
+        cycle_.cycle(1);
         uint16_t hi;
         hi = stackPop();
+        cycle_.cycle(1);
         uint16_t res = (hi << 8) | lo;
         reg_.pc_ = res;
+
+        cycle_.cycle(1);
     }
 }
 
@@ -237,8 +245,10 @@ void CPUContext::pop()
 {
     uint16_t lo;
     lo = stackPop();
+    cycle_.cycle(1);
     uint16_t hi;
     hi = stackPop();
+    cycle_.cycle(1);
     uint16_t res = (hi << 8) | lo;
     reg_.writeReg(curInst_.reg1,
         res & (curInst_.reg1 == RegType::AF ? 0xFFF0 : 0xFFFF));
@@ -248,10 +258,13 @@ void CPUContext::push()
 {
     uint16_t hi;
     hi = (reg_.readReg(curInst_.reg1) >> 8) & 0xFF;
+    cycle_.cycle(1);
     stackPush(hi);
     uint16_t lo;
     lo = reg_.readReg(curInst_.reg1) & 0xFF;
+    cycle_.cycle(1);
     stackPush(lo);
+    cycle_.cycle(1);
 }
 
 void CPUContext::add()
@@ -259,7 +272,7 @@ void CPUContext::add()
     uint32_t val = reg_.readReg(curInst_.reg1) + fetchedData_;
     bool is16bit = is16bitReg(curInst_.reg1);
     if (is16bit) {
-        // emu...
+        cycle_.cycle(1);
     }
 
     if (curInst_.reg1 == RegType::SP) {
@@ -628,6 +641,7 @@ void CPUContext::fetchData()
             memoDest_ = reg_.readReg(curInst_.reg1);
             writeToMemo_ = true;
             fetchedData_ = bus_.read(reg_.readReg(curInst_.reg1));
+            cycle_.cycle(1);
             return;
         case AddrMode::D8:
             fetchedData_ = bus_.read(reg_.pc_);
@@ -656,6 +670,7 @@ void CPUContext::fetchData()
             return;
         case AddrMode::R_HLD:
             fetchedData_ = bus_.read(reg_.readReg(curInst_.reg2));
+            cycle_.cycle(1);
             reg_.writeReg(RegType::HL, reg_.readReg(RegType::HL) - 1);
             return;
         case AddrMode::HLI_R:
@@ -718,6 +733,7 @@ void CPUContext::fetchData()
             uint16_t addr = low | (high << 8);
             fetchedData_ = bus_.read(addr);
             reg_.pc_ += 2;
+            cycle_.cycle(1);
             return;
         }
         case AddrMode::R_D16:

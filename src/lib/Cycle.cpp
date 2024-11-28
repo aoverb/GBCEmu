@@ -18,6 +18,7 @@ void Cycle::cycle(uint8_t c)
             timer_.tick();
             ppu_.tick();
         }
+        dma_.tick();
     }
 }
 }

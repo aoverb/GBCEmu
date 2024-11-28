@@ -105,6 +105,7 @@ namespace GBCEmu {
         SDL_RenderCopy(sdlDbgRenderer_, sdlDbgTexture_, NULL, NULL);
         SDL_RenderPresent(sdlDbgRenderer_);
     }
+
     void UI::displayTile(SDL_Surface *surface, uint16_t startLoc, uint16_t tileNum, int x, int y)
     {
         SDL_Rect rc;

@@ -29,7 +29,7 @@ namespace GBCEmu {
             return lcd_.read(addr);
         }
         // std::cerr << "CPURegister::ioRead UNSUPPORTED: " << std::hex << addr << "\n";
-        return 0;
+        return 0xFF;
     }
 
     void IO::write(uint16_t addr, uint8_t val)

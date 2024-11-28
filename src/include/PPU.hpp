@@ -33,19 +33,20 @@ typedef struct PixelFIFOContext {
     uint8_t tileY;
     uint8_t fifoX;
 };
-
+#pragma pack(push, 1)
 typedef struct OAM {
-    uint8_t x;
     uint8_t y;
+    uint8_t x;
     uint8_t tile;
 
-    unsigned cgbPaletteNum : 3;
-    unsigned cgbVRAMBank : 1;
-    unsigned paletteNum : 1;
-    unsigned xFlip : 1;
-    unsigned yFlip : 1;
-    unsigned prior : 1;
+    uint8_t cgbPaletteNum : 3;
+    uint8_t cgbVRAMBank : 1;
+    uint8_t paletteNum : 1;
+    uint8_t xFlip : 1;
+    uint8_t yFlip : 1;
+    uint8_t prior : 1;
 };
+#pragma pack(pop)
 
 struct SpriteComparator {
     bool operator()(const std::pair<OAM, int>& a, const std::pair<OAM, int>& b) const {

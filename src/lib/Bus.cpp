@@ -35,7 +35,9 @@ namespace GBCEmu {
 
     uint8_t Bus::read(uint16_t addr)
     {
-        // std::cout << "Bus::read, addr: " << addr << std::endl;
+        if (addr >= 0xFE00 && addr < 0xFEA0 && active_) {
+            return 0xFF;
+        }
         auto device = deviceArray_[addr];
         if (device) {
             return device->busRead(addr);
@@ -57,11 +59,10 @@ namespace GBCEmu {
 
     void Bus::write(uint16_t addr, uint8_t val)
     {
-        // std::cerr << "Bus::write" << std::hex << (int)addr << ": " << (int)val << std::endl;
-        if (addr == 0xFF44) {
-            std::cerr << "Bus::write" << std::hex << (int)addr << ": " << (int)val << std::endl;
-        }
         auto device = deviceArray_[addr];
+        if (addr >= 0xFE00 && addr < 0xFEA0 && active_) {
+            return;
+        }
         if (device) {
             device->busWrite(addr, val);
             return;

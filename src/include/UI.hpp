@@ -20,6 +20,7 @@ protected:
     void updateDebugWindow();
     void updateEmuWindow();
     void displayTile(SDL_Surface* surface, uint16_t startLoc, uint16_t tileNum, int x, int y);
+    void displaySprite(SDL_Surface *surface, uint16_t startLoc, uint16_t spriteNum, int x, int y);
     uint32_t color_[4] = {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000};
     uint16_t screenWidth_ = 660;
     uint16_t screenHeight_ = 600;
