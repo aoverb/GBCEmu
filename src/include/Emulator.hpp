@@ -17,6 +17,7 @@
 #include "Cartridge.hpp"
 #include "EmuContext.hpp"
 #include "Gamepad.hpp"
+#include "RTC.hpp"
 
 namespace GBCEmu {
 
@@ -45,6 +46,7 @@ protected:
     Cycle cycle_;
     Cartridge cartridge_;
     Gamepad gamepad_;
+    RTC rtc_;
     // SDL2 相关成员
     ::SDL_Window* window_;
     ::SDL_Renderer* renderer_;

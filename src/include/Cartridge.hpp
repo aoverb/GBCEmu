@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.hpp"
+#include "RTC.hpp"
 #include "BusRWInterface.hpp"
 namespace GBCEmu {
 
@@ -20,7 +21,7 @@ public:
         uint8_t checksum;
         uint16_t global_checksum;
     } header;
-    Cartridge() {};
+    Cartridge(RTC& rtc);
     ~Cartridge() {};
     void load(const std::string& filePath);
     uint8_t read(uint16_t addr);
@@ -38,6 +39,10 @@ public:
     bool needSave()
     {
         return needSave_;
+    }
+    bool needTimer()
+    {
+        return between(header_->type, 15, 16);
     }
 protected:
     std::string getLicCode(uint8_t code);
@@ -63,14 +68,14 @@ protected:
     header* header_;
     std::vector<uint8_t> romData_;
 
-    bool ramEnabled_;
+    bool ramEnabled_ = false;
     bool ramBanking_;
     uint32_t ramSize_;
 
     uint8_t* romBankX_;
     uint8_t bankingMode_;
 
-    uint8_t romNum_;
+    uint8_t romNum_ = 0;
     uint8_t romBankValue_ = 1;
     uint8_t ramBankValue_ = 0;
 
@@ -79,6 +84,8 @@ protected:
     bool battery_;
     bool needSave_;
     std::string filePath_;
+
+    RTC& rtc_;
 };
 
 static_assert(sizeof(Cartridge::header) == 0x50, "Header size incorrect");

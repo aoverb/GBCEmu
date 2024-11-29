@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
+#include <ctime>
 
 namespace GBCEmu {
 
@@ -106,7 +107,10 @@ const std::unordered_map<uint8_t, std::string> LIC_CODE = {
     {0x99, "Pack in soft"},
     {0xA4, "Konami (Yu-Gi-Oh!)"}
 };
-void Cartridge::load(const std::string& filePath)
+Cartridge::Cartridge(RTC &rtc) : rtc_(rtc)
+{
+}
+void Cartridge::load(const std::string &filePath)
 {
     filePath_ = filePath;
     std::cout << "load file : " << filePath << std::endl;
@@ -129,7 +133,7 @@ void Cartridge::load(const std::string& filePath)
     header_->title[15] = '\0';
     battery_ = cartBattery();
     romNum_ = (32 << header_->rom_size) / 16;
-    needSave_ = false;
+    needSave_ = battery_;
 
     std::cout << "Cartridge Loaded:\n";
     std::cout << "\t Title    : " << header_->title << "\n";
@@ -306,11 +310,69 @@ void Cartridge::mbc2Write(uint16_t addr, uint8_t val)
 
 uint8_t Cartridge::mbc3Read(uint16_t addr)
 {
-    return 0;
+    if (addr >= 0x4000 && addr <= 0x7FFF) {
+        return romBankX_[addr - 0x4000];
+    }
+    if (addr >= 0xA000 && addr <= 0xBFFF) {
+        if (ramBankValue_ < 0x03) { // RAM Bank Mapping
+            if (ramBank_ != nullptr) {
+                if (!ramEnabled_) {
+                    return 0xFF;
+                }
+                return ramBank_[addr - 0xA000 + ramBankValue_ * 0x2000];
+            }
+        }
+        if (needTimer() && ramBankValue_ > 0x0B && ramBankValue_ < 0x0C) {
+            return reinterpret_cast<uint8_t*>(&rtc_.s)[ramBankValue_ - 0x08];
+        }
+    }
+    return 0xFF;
 }
 
 void Cartridge::mbc3Write(uint16_t addr, uint8_t val)
 {
+    if (addr <= 0x1FFF) {
+        ramEnabled_ = val == 0xA;
+        return;
+    }
+    if (addr >= 0x2000 && addr <= 0x3FFF) {
+        val &= 0x7F;
+        romBankValue_ = val == 0 ? 1 : val;
+        romBankX_ = romData_.data() + (0x4000 * romBankValue_);
+        return;
+    }
+    if (addr >= 0x4000 && addr <= 0x5FFF) {
+        ramBankValue_ = val;
+        return;
+    }
+    if (addr >= 0x6000 && addr <= 0x7FFF) {
+        if (needTimer()) {
+            if (val == 0x01 && rtc_.latching) {
+                rtc_.latch();
+            }
+            rtc_.latching = (val == 0x00);
+            return;
+        }
+    }
+    if (addr >= 0xA000 && addr <= 0xBFFF) {
+        if (ramBankValue_ <= 0x03) {
+            if (ramBank_ != nullptr) {
+                if (!ramEnabled_) {
+                    return;
+                }
+                ramBank_[addr - 0xA000 + ramBankValue_ * 0x2000] = val;
+                if (battery_) {
+                    std::cout << "need save..." << std::endl;
+                    needSave_ = true;
+                }
+                return;
+            }
+        }
+        if (needTimer() && ramBankValue_ > 0x0B && ramBankValue_ < 0x0C) {
+            reinterpret_cast<uint8_t*>(&rtc_.s)[ramBankValue_ - 0x08] = val;
+            rtc_.updateTimestamp();
+        }
+    }    
 }
 
 void Cartridge::loadByBattery() {
@@ -326,6 +388,14 @@ void Cartridge::loadByBattery() {
 
     // 根据ramSize_读取存档
     saveFile.read(reinterpret_cast<char*>(ramBank_), ramSize_);
+    if (needTimer()) {
+        saveFile.read(reinterpret_cast<char*>(&rtc_), sizeof(RTC));
+        std::time_t past;
+        std::time_t now = time(NULL);
+        saveFile.read(reinterpret_cast<char*>(&past), sizeof(std::time_t));
+        rtc_.time += std::min(static_cast<uint32_t>(0), static_cast<uint32_t>(now - past));
+        rtc_.updateTimeReg();
+    }
     if (!saveFile) {
         std::cerr << "failed to load..." << std::endl;
     }
@@ -345,6 +415,11 @@ void Cartridge::saveByBattery() {
     }
 
     saveFile.write(reinterpret_cast<const char*>(ramBank_), ramSize_);
+    if (needTimer()) {
+        saveFile.write(reinterpret_cast<const char*>(&rtc_), sizeof(RTC));
+        std::time_t now = time(NULL);
+        saveFile.write(reinterpret_cast<const char*>(&now), sizeof(std::time_t));
+    }
     if (!saveFile) {
         std::cerr << "failed to save..." << std::endl;
     }

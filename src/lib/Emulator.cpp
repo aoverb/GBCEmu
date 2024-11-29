@@ -10,7 +10,7 @@ namespace GBCEmu {
 Emulator::Emulator() : ui_(context_, bus_, ppu_, gamepad_), ppu_(lcd_.getContext(), bus_, interrupt_, cartridge_),
     timer_(interrupt_), dma_(ppu_, bus_), cycle_(context_, timer_, dma_, ppu_),
     io_(timer_, interrupt_, dma_, lcd_, gamepad_), lcd_(dma_),
-    cpu_(bus_, reg_, cycle_, interrupt_)
+    cpu_(bus_, reg_, cycle_, interrupt_), cartridge_(rtc_)
 {
     bus_.regDevice(0x0000, 0x8000 - 0x1, cartridge_);
     bus_.regDevice(0x8000, 0xA000 - 0x1, ppu_);
@@ -59,8 +59,12 @@ int Emulator::run(int argc, char* argv[])
     });
 
     uint32_t prevFrame = 0;
-        
+    uint32_t deltaTime = getTicks();
     while (!context_.die) {
+        deltaTime = (getTicks() - deltaTime) / 1000;
+        if (cartridge_.needTimer()) {
+            rtc_.update(deltaTime);
+        }
         ui_.handleEvents();
         ui_.delay(10);
 
