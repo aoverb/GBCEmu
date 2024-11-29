@@ -1,7 +1,7 @@
 #include "PPU.hpp"
 
 namespace GBCEmu {
-    PPU::PPU(LCDContext& lcd, Bus& bus, Interrupt& interrupt) : lcd_(lcd), bus_(bus), interrupt_(interrupt)
+    PPU::PPU(LCDContext& lcd, Bus& bus, Interrupt& interrupt, Cartridge& cart) : lcd_(lcd), bus_(bus), interrupt_(interrupt), cart_(cart)
     {
         currentFrame_ = 0;
         lineTicks_ = 0;
@@ -416,6 +416,10 @@ namespace GBCEmu {
                     frameCount_ = 0;
 
                     printf("FPS: %ld\n", fps);
+
+                    if (cart_.needSave()) {
+                        cart_.saveByBattery();
+                    }
                 }
 
                 frameCount_++;

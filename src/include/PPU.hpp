@@ -4,6 +4,7 @@
 #include "Interrupt.hpp"
 #include "BusRWInterface.hpp"
 #include "Bus.hpp"
+#include "Cartridge.hpp"
 
 namespace GBCEmu {
 constexpr int LINES_PER_FRAME = 154;
@@ -61,7 +62,7 @@ struct SpriteComparator {
 
 class PPU : public BusRWInterface {
 public:
-    PPU(LCDContext& lcd, Bus& bus, Interrupt& interrupt);
+    PPU(LCDContext& lcd, Bus& bus, Interrupt& interrupt, Cartridge& cart);
     ~PPU();
     void tick();
     uint8_t readOAM(uint16_t addr);
@@ -98,6 +99,8 @@ protected:
     LCDContext& lcd_;
     Bus& bus_;
     Interrupt& interrupt_;
+    Cartridge& cart_;
+
     uint32_t prevFrameTime_;
     uint32_t startTimer_ = 0;
     uint32_t frameCount_ = 0;

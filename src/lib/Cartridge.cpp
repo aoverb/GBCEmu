@@ -1,6 +1,7 @@
 #include "Cartridge.hpp"
 #include <unordered_map>
 #include <fstream>
+#include <sstream>
 
 namespace GBCEmu {
 
@@ -107,6 +108,7 @@ const std::unordered_map<uint8_t, std::string> LIC_CODE = {
 };
 void Cartridge::load(const std::string& filePath)
 {
+    filePath_ = filePath;
     std::cout << "load file : " << filePath << std::endl;
     std::ifstream romFile(filePath, std::ios::binary | std::ios::ate);
     if (!romFile.is_open()) {
@@ -125,6 +127,8 @@ void Cartridge::load(const std::string& filePath)
 
     // 确保标题字符串以 NULL 结尾
     header_->title[15] = '\0';
+    battery_ = cartBattery();
+    needSave_ = false;
 
     std::cout << "Cartridge Loaded:\n";
     std::cout << "\t Title    : " << header_->title << "\n";
@@ -136,6 +140,8 @@ void Cartridge::load(const std::string& filePath)
               << " (" << getLicCode(header_->lic_code) << ")\n";
     std::cout << "\t ROM Vers : " << std::hex << static_cast<int>(header_->version) << "\n";
 
+    cartSetupBanking();
+
     uint16_t x = 0;
     // 这里需要确保访问 `romData_` 时能处理 `uint8_t` 数据类型
     for (uint16_t i = 0x0134; i <= 0x014C; i++) {
@@ -144,6 +150,10 @@ void Cartridge::load(const std::string& filePath)
 
     std::cout << "\t Checksum : " << std::hex << std::uppercase << static_cast<int>(header_->checksum)
          << ((x & 0xFF) ? "(PASSED)" : "(FAILED)") << "\n";
+
+    if (battery_) {
+        loadByBattery();
+    }
 }
 
 // 获取授权代码对应的字符串
@@ -165,13 +175,128 @@ std::string Cartridge::getROMType(uint8_t code)
 
 uint8_t Cartridge::read(uint16_t addr)
 {
-    // std::cout << "read rom data!addr:" << std::hex <<addr << ", content: " << std::hex << static_cast<int>(romData_[addr]) << "\n";
-    return romData_[addr];
+    if ((!cartMBC1() && !cartMBC2() && !cartMBC3()) || addr < 0x4000) {
+        return romData_[addr];
+    }
+
+    if ((addr & 0xE000) == 0xA000) { // A000-C000, RAM Scope
+        if (!ramEnabled_ || ramBank_ == nullptr) {
+            return 0xFF;
+        }
+
+        return ramBank_[addr - 0xA000];
+    }
+
+    return romBankX_[addr - 0x4000];
 }
 
 void Cartridge::write(uint16_t addr, uint8_t val)
 {
-    // std::cerr << "Cartridge::write unspported...\n";
+    if (!cartMBC1() && !cartMBC2() && !cartMBC3()) {
+        return; // unspported...
+    }
+
+    if (addr < 0x2000) { // RAM Enable
+        ramEnabled_ = (val & 0xF) == 0xA;
+        return;
+    }
+
+    if ((addr & 0xE000) == 0x2000) { // ROM bank number
+        val = (val == 0) ? 1 : (val & 0b11111);
+        romBankValue_ = val;
+        romBankX_ = romData_.data() + (0x4000 * romBankValue_);
+        // std::cout << "switching rombank to " << (int)val << "\n";
+    }
+
+    if ((addr & 0xE000) == 0x4000) { // RAM bank number
+        ramBankValue_ = val & 0b11;
+        if (ramBanking_) {
+            if (needSave_) {
+                saveByBattery();
+            }
+            ramBank_ = ramBanks_[ramBankValue_]; // switching RAM bank
+            std::cout << "switching rambank to " << (int)val << "\n";
+        }
+    }
+
+    if ((addr & 0xE000) == 0x6000) { // Banking mode select
+        bankingMode_ = val & 0b1;
+
+        ramBanking_ = bankingMode_; // protection...
+
+        if (ramBanking_) {
+            ramBank_ = ramBanks_[ramBankValue_];
+        }
+    }
+
+    if ((addr & 0xE000) == 0xA000) { // RW Section
+        if (!ramEnabled_ || ramBank_ == nullptr) {
+            return;
+        }
+
+        ramBank_[addr - 0x0A000] = val;
+
+        if (battery_) {
+            needSave_ = true;
+        }
+    }
+
+}
+
+void Cartridge::loadByBattery() {
+    std::stringstream ss;
+    ss << filePath_ << ".save";
+    std::string saveFileName = ss.str();
+
+    std::ifstream saveFile(saveFileName, std::ios::binary);
+    if (!saveFile) {
+        std::cerr << "failed to open: " << saveFileName << std::endl;
+        return;
+    }
+
+    // 根据ramSize_读取存档
+    saveFile.read(reinterpret_cast<char*>(ramBank_), 0x2000);
+    if (!saveFile) {
+        std::cerr << "failed to load..." << std::endl;
+    }
+    saveFile.close();
+}
+
+// 保存存档
+void Cartridge::saveByBattery() {
+    std::stringstream ss;
+    ss << filePath_ << ".save";
+    std::string saveFileName = ss.str();
+
+    std::ofstream saveFile(saveFileName, std::ios::binary);
+    if (!saveFile) {
+        std::cerr << "failed to open: " << saveFileName << std::endl;
+        return;
+    }
+
+    saveFile.write(reinterpret_cast<const char*>(ramBank_), 0x2000);
+    if (!saveFile) {
+        std::cerr << "failed to save..." << std::endl;
+    }
+    saveFile.close();
+}
+
+void Cartridge::cartSetupBanking()
+{
+    for (int i = 0; i < 16; i++) {
+        ramBanks_[i] = nullptr;
+
+        if ((header_->ram_size == 2 && i == 0) || // one bank
+            (header_->ram_size == 3 && i < 4) ||
+            (header_->ram_size == 4) ||
+            (header_->ram_size == 5 && i < 8)
+        ) {  // four banks
+            ramBanks_[i] = new uint8_t[0x2000];
+        }
+    }
+
+    ramBank_ = ramBanks_[0];
+    romBankX_ = romData_.data() + 4000;
 }
 
 uint8_t Cartridge::busRead(uint16_t addr)

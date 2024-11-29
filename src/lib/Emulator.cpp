@@ -7,7 +7,7 @@
 namespace GBCEmu {
 
 // 构造函数
-Emulator::Emulator() : ui_(context_, bus_, ppu_, gamepad_), ppu_(lcd_.getContext(), bus_, interrupt_),
+Emulator::Emulator() : ui_(context_, bus_, ppu_, gamepad_), ppu_(lcd_.getContext(), bus_, interrupt_, cartridge_),
     timer_(interrupt_), dma_(ppu_, bus_), cycle_(context_, timer_, dma_, ppu_),
     io_(timer_, interrupt_, dma_, lcd_, gamepad_), lcd_(dma_),
     cpu_(bus_, reg_, cycle_, interrupt_)
