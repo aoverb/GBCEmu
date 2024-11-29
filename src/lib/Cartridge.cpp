@@ -440,7 +440,7 @@ void Cartridge::cartSetupBanking()
     }
     ramSize_ = (cartMBC2()) ? 0x200 : ramSize * 0x2000;
     ramBank_ = new uint8_t[ramSize_];
-    romBankX_ = romData_.data() + 4000;
+    romBankX_ = romData_.data() + 0x4000;
 }
 
 uint8_t Cartridge::busRead(uint16_t addr)
