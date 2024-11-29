@@ -6,6 +6,7 @@
 #include <exception>
 #include <vector>
 #include <iostream>
+#include <cmath>
 #include <unordered_map>
 
 #define NO_IMPL std::cout << "NOT IMPLEMENTED" << std::endl; exit(-5);

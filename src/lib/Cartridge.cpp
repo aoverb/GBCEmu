@@ -128,6 +128,7 @@ void Cartridge::load(const std::string& filePath)
     // 确保标题字符串以 NULL 结尾
     header_->title[15] = '\0';
     battery_ = cartBattery();
+    romNum_ = (32 << header_->rom_size) / 16;
     needSave_ = false;
 
     std::cout << "Cartridge Loaded:\n";
@@ -179,15 +180,15 @@ uint8_t Cartridge::read(uint16_t addr)
         return romData_[addr];
     }
 
-    if ((addr & 0xE000) == 0xA000) { // A000-C000, RAM Scope
-        if (!ramEnabled_ || ramBank_ == nullptr) {
-            return 0xFF;
-        }
-
-        return ramBank_[addr - 0xA000];
+    if (cartMBC1()) {
+        return mbc1Read(addr);
     }
-
-    return romBankX_[addr - 0x4000];
+    if (cartMBC2()) {
+        return mbc2Read(addr);
+    }
+    if (cartMBC3()) {
+        return mbc3Read(addr);
+    }
 }
 
 void Cartridge::write(uint16_t addr, uint8_t val)
@@ -195,7 +196,33 @@ void Cartridge::write(uint16_t addr, uint8_t val)
     if (!cartMBC1() && !cartMBC2() && !cartMBC3()) {
         return; // unspported...
     }
+    if (cartMBC1()) {
+        mbc1Write(addr, val);
+    }
+    if (cartMBC2()) {
+        mbc2Write(addr, val);
+    }
+    if (cartMBC3()) {
+        mbc3Write(addr, val);
+    }
 
+}
+
+uint8_t Cartridge::mbc1Read(uint16_t addr)
+{
+    if ((addr & 0xE000) == 0xA000) { // A000-C000, RAM Scope
+        if (!ramEnabled_ || ramBank_ == nullptr) {
+            return 0xFF;
+        }
+
+        return ramBank_[addr - 0xA000 + ramBankValue_ * 0x2000];
+    }
+
+    return romBankX_[addr - 0x4000];
+}
+
+void Cartridge::mbc1Write(uint16_t addr, uint8_t val)
+{
     if (addr < 0x2000) { // RAM Enable
         ramEnabled_ = (val & 0xF) == 0xA;
         return;
@@ -214,7 +241,6 @@ void Cartridge::write(uint16_t addr, uint8_t val)
             if (needSave_) {
                 saveByBattery();
             }
-            ramBank_ = ramBanks_[ramBankValue_]; // switching RAM bank
             std::cout << "switching rambank to " << (int)val << "\n";
         }
     }
@@ -223,24 +249,68 @@ void Cartridge::write(uint16_t addr, uint8_t val)
         bankingMode_ = val & 0b1;
 
         ramBanking_ = bankingMode_; // protection...
-
-        if (ramBanking_) {
-            ramBank_ = ramBanks_[ramBankValue_];
-        }
     }
 
     if ((addr & 0xE000) == 0xA000) { // RW Section
         if (!ramEnabled_ || ramBank_ == nullptr) {
             return;
         }
-
-        ramBank_[addr - 0x0A000] = val;
+        std::cout << "rw..." << std::endl;
+        ramBank_[addr - 0xA000 + ramBankValue_ * 0x2000] = val;
 
         if (battery_) {
+            std::cout << "need save..." << std::endl;
             needSave_ = true;
         }
     }
+}
 
+uint8_t Cartridge::mbc2Read(uint16_t addr)
+{
+    if ((addr & 0xE000) == 0xA000) { // A000-C000, RAM Scope
+        if (!ramEnabled_ || ramBank_ == nullptr) {
+            return 0xFF;
+        }
+
+        return ramBank_[(addr - 0xA000) % 512] & 0x0F | 0xF0;
+    }
+
+    return romBankX_[addr - 0x4000];
+}
+
+void Cartridge::mbc2Write(uint16_t addr, uint8_t val)
+{
+    if (addr < 0x4000) {
+        if (addr & 0x100) { // 8th bit, set Rom bank number...
+            val = (val == 0) ? 1 : (val & 0b11111);
+            romBankValue_ = val & (romNum_ - 1);
+            romBankX_ = romData_.data() + (0x4000 * romBankValue_);
+        } else {
+            if (ramBank_ != nullptr) {
+                ramEnabled_ = val == 0xA;
+                return;
+            }
+        }
+    } else if (addr >= 0xA000 && addr <= 0xBFFF) {
+        if (!ramEnabled_ || ramBank_ == nullptr) {
+            return;
+        }
+        std::cout << "rw..." << std::endl;
+        ramBank_[(addr - 0xA000) % 512] = val & 0xF;
+        if (battery_) {
+            std::cout << "need save..." << std::endl;
+            needSave_ = true;
+        }
+    }
+}
+
+uint8_t Cartridge::mbc3Read(uint16_t addr)
+{
+    return 0;
+}
+
+void Cartridge::mbc3Write(uint16_t addr, uint8_t val)
+{
 }
 
 void Cartridge::loadByBattery() {
@@ -255,7 +325,7 @@ void Cartridge::loadByBattery() {
     }
 
     // 根据ramSize_读取存档
-    saveFile.read(reinterpret_cast<char*>(ramBank_), 0x2000);
+    saveFile.read(reinterpret_cast<char*>(ramBank_), ramSize_);
     if (!saveFile) {
         std::cerr << "failed to load..." << std::endl;
     }
@@ -274,7 +344,7 @@ void Cartridge::saveByBattery() {
         return;
     }
 
-    saveFile.write(reinterpret_cast<const char*>(ramBank_), 0x2000);
+    saveFile.write(reinterpret_cast<const char*>(ramBank_), ramSize_);
     if (!saveFile) {
         std::cerr << "failed to save..." << std::endl;
     }
@@ -283,19 +353,18 @@ void Cartridge::saveByBattery() {
 
 void Cartridge::cartSetupBanking()
 {
+    int ramSize = 0;
     for (int i = 0; i < 16; i++) {
-        ramBanks_[i] = nullptr;
-
         if ((header_->ram_size == 2 && i == 0) || // one bank
             (header_->ram_size == 3 && i < 4) ||
             (header_->ram_size == 4) ||
             (header_->ram_size == 5 && i < 8)
         ) {  // four banks
-            ramBanks_[i] = new uint8_t[0x2000];
+            ++ramSize;
         }
     }
-
-    ramBank_ = ramBanks_[0];
+    ramSize_ = (cartMBC2()) ? 0x200 : ramSize * 0x2000;
+    ramBank_ = new uint8_t[ramSize_];
     romBankX_ = romData_.data() + 4000;
 }
 

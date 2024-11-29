@@ -25,6 +25,12 @@ public:
     void load(const std::string& filePath);
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t val);
+    uint8_t mbc1Read(uint16_t addr);
+    void mbc1Write(uint16_t addr, uint8_t val);
+    uint8_t mbc2Read(uint16_t addr);
+    void mbc2Write(uint16_t addr, uint8_t val);
+    uint8_t mbc3Read(uint16_t addr);
+    void mbc3Write(uint16_t addr, uint8_t val);
     virtual uint8_t busRead(uint16_t addr) final;
     virtual void busWrite(uint16_t addr, uint8_t value) final;
     void loadByBattery();
@@ -59,15 +65,16 @@ protected:
 
     bool ramEnabled_;
     bool ramBanking_;
+    uint32_t ramSize_;
 
     uint8_t* romBankX_;
     uint8_t bankingMode_;
 
-    uint8_t romBankValue_;
-    uint8_t ramBankValue_;
+    uint8_t romNum_;
+    uint8_t romBankValue_ = 1;
+    uint8_t ramBankValue_ = 0;
 
     uint8_t *ramBank_;
-    uint8_t *ramBanks_[16];
 
     bool battery_;
     bool needSave_;
