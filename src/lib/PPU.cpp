@@ -46,7 +46,6 @@ namespace GBCEmu {
         if (addr >= 0xFE00) {
             addr -= 0xFE00;
         }
-        std::cout << "readoam: " << (int)(reinterpret_cast<uint8_t *>(oam_)[addr]) << "\n";
         return reinterpret_cast<uint8_t *>(oam_)[addr];
     }
     void PPU::writeOAM(uint16_t addr, uint8_t val)
@@ -368,9 +367,8 @@ namespace GBCEmu {
     {
         pipelineProcess();
         if (pfc_.pushX >= XRES) {
-            while(!pfc_.pixelStack.empty()) {
-                pfc_.pixelStack.pop();
-            }
+            std::queue<Color> emptyStack;
+            pfc_.pixelStack.swap(emptyStack);
             lcd_.setPPUMode(static_cast<uint8_t>(LCDMODE::HBLANK));
 
             if (lcd_.lcds_ & static_cast<uint8_t>(STATSRC::HBLANK)) {
@@ -415,11 +413,7 @@ namespace GBCEmu {
                     startTimer_ = end;
                     frameCount_ = 0;
 
-                    printf("FPS: %ld\n", fps);
-
-                    if (cart_.needSave()) {
-                        cart_.saveByBattery();
-                    }
+                    fps_ = fps;
                 }
 
                 frameCount_++;

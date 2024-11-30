@@ -42,7 +42,7 @@ namespace GBCEmu {
         if (device) {
             return device->busRead(addr);
         } else {
-            return 0;
+            return 0xFF;
         }
         throw std::out_of_range("Address out of range or unregistered");
     }

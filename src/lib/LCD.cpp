@@ -42,7 +42,7 @@ namespace GBCEmu {
         p[offset] = val;
         
         if (offset == 6) {
-            dma_.start(val);
+            dma_.start(val); // ugly... 
         }
 
         if (offset == 7) {

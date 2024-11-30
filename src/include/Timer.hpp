@@ -10,6 +10,7 @@ public:
     void tick();
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t val);
+    uint8_t getDiv();
 protected:
     uint16_t div_ = 0;
     uint8_t tima_;

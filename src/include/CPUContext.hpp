@@ -34,9 +34,9 @@ public:
     void sub();
     void sbc();
     void adc();
-    void and();
-    void xor();
-    void or();
+    void pand();
+    void pxor();
+    void por();
     void cp();
     void cb();
     void rlca();

@@ -10,9 +10,9 @@ CPUContext::CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle, Interrupt& inte
     PROCESSOR_[InstType::ADC] = [this]() { this->adc(); };
     PROCESSOR_[InstType::SUB] = [this]() { this->sub(); };
     PROCESSOR_[InstType::SBC] = [this]() { this->sbc(); };
-    PROCESSOR_[InstType::AND] = [this]() { this->and(); };
-    PROCESSOR_[InstType::XOR] = [this]() { this->xor(); };
-    PROCESSOR_[InstType::OR] = [this]() { this->or(); };
+    PROCESSOR_[InstType::AND] = [this]() { this->pand(); };
+    PROCESSOR_[InstType::XOR] = [this]() { this->pxor(); };
+    PROCESSOR_[InstType::OR] = [this]() { this->por(); };
     PROCESSOR_[InstType::CP] = [this]() { this->cp(); };
     PROCESSOR_[InstType::CB] = [this]() { this->cb(); };
     PROCESSOR_[InstType::INC] = [this]() { this->inc(); };
@@ -25,7 +25,6 @@ CPUContext::CPUContext(Bus& bus, CPURegister& reg, Cycle& cycle, Interrupt& inte
     PROCESSOR_[InstType::CALL] = [this]() { this->call(); };
     PROCESSOR_[InstType::RST] = [this]() { this->rst(); };
     PROCESSOR_[InstType::JR] = [this]() { this->jr(); };
-    PROCESSOR_[InstType::XOR] = [this]() { this->xor(); };
     PROCESSOR_[InstType::POP] = [this]() { this->pop(); };
     PROCESSOR_[InstType::PUSH] = [this]() { this->push(); };
     PROCESSOR_[InstType::RRCA] = [this]() { this->rrca(); };
@@ -333,19 +332,19 @@ void GBCEmu::CPUContext::adc()
     reg_.setFlags(reg_.a_ == 0, 0, (a & 0xF) + (u & 0xF) + c > 0xF, a + u + c > 0xFF);
 }
 
-void CPUContext::and()
+void CPUContext::pand()
 {
     reg_.a_ &= fetchedData_;
     reg_.setFlags(reg_.a_ == 0, 0, 1, 0);
 }
 
-void CPUContext::xor()
+void CPUContext::pxor()
 {
     reg_.a_ ^= fetchedData_ & 0xFF;
     reg_.setFlags(reg_.a_ == 0, 0, 0, 0);
 }
 
-void CPUContext::or()
+void CPUContext::por()
 {
     reg_.a_ |= fetchedData_ & 0xFF;
     reg_.setFlags(reg_.a_ == 0, 0, 0, 0);
@@ -391,9 +390,6 @@ void CPUContext::cb()
     
     cycle_.cycle(1);
 
-    if (reg == RegType::HL) {
-        cycle_.cycle(2);
-    }
 
     switch (bitOp) {
         case 1: // BIT

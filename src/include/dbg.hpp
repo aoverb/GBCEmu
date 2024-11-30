@@ -5,8 +5,8 @@ namespace GBCEmu {
 class dbg {
 public:
     dbg(Bus& bus) : bus_(bus) {};
-    void dbg::dbg_update();
-    void dbg::dbg_print();
+    void dbg_update();
+    void dbg_print();
 protected:
     Bus& bus_;
 };

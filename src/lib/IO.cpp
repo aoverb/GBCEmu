@@ -1,7 +1,8 @@
 #include "IO.hpp"
 
 namespace GBCEmu {
-    IO::IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd, Gamepad& gamepad) : timer_(timer), interrupt_(interrupt), dma_(dma), lcd_(lcd), gamepad_(gamepad)
+    IO::IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd, Gamepad& gamepad, APU& apu) : timer_(timer),
+        interrupt_(interrupt), dma_(dma), lcd_(lcd), gamepad_(gamepad), apu_(apu)
     {
     }
 
@@ -15,13 +16,17 @@ namespace GBCEmu {
             return gamepad_.getOutput();
         }
         if (addr == 0xFF01) {
-            return serialData[0];
+            return static_cast<uint8_t>(serialData[0]);
         }
         if (addr == 0xFF02) {
-            return serialData[1];
+            return static_cast<uint8_t>(serialData[1]);
         }
         if (between(addr, 0xFF04, 0xFF07)) {
             return timer_.read(addr);
+        }
+
+        if (between(addr, 0xFF10, 0xFF3F)) {
+            return apu_.busRead(addr);
         }
 
         if (addr == 0xFF0F) {
@@ -41,11 +46,11 @@ namespace GBCEmu {
             gamepad_.setSel(val);
         }
         if (addr == 0xFF01) {
-            serialData[0] = val;
+            serialData[0] = static_cast<char>(val);
             return;
         }
         if (addr == 0xFF02) {
-            serialData[1] = val;
+            serialData[1] = static_cast<char>(val);
             return;
         }
 
@@ -53,6 +58,12 @@ namespace GBCEmu {
             timer_.write(addr, val);
             return;
         } 
+
+        if (between(addr, 0xFF10, 0xFF3F)) {
+            apu_.busWrite(addr, val);
+            return;
+        }
+
         if (addr == 0xFF0F) {
             interrupt_.setIntFlag(val);
             return;

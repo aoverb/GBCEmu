@@ -2,14 +2,14 @@
 #include "Emulator.hpp"
 #include <iostream>
 #include <fstream>
-#include <thread>
+#include <mingw.thread.h>
 
 namespace GBCEmu {
 
 // 构造函数
 Emulator::Emulator() : ui_(context_, bus_, ppu_, gamepad_), ppu_(lcd_.getContext(), bus_, interrupt_, cartridge_),
-    timer_(interrupt_), dma_(ppu_, bus_), cycle_(context_, timer_, dma_, ppu_),
-    io_(timer_, interrupt_, dma_, lcd_, gamepad_), lcd_(dma_),
+    timer_(interrupt_), dma_(ppu_, bus_), cycle_(context_, timer_, dma_, ppu_, apu_),
+    io_(timer_, interrupt_, dma_, lcd_, gamepad_, apu_), lcd_(dma_),
     cpu_(bus_, reg_, cycle_, interrupt_), cartridge_(rtc_)
 {
     bus_.regDevice(0x0000, 0x8000 - 0x1, cartridge_);

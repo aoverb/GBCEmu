@@ -7,7 +7,7 @@
 namespace GBCEmu {
 class DMA {
 public:
-    DMA::DMA(PPU& ppu, Bus& bus);
+    DMA(PPU& ppu, Bus& bus);
     ~DMA();
     void tick();
     void start(uint8_t highAddr);

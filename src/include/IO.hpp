@@ -5,11 +5,12 @@
 #include "DMA.hpp"
 #include "LCD.hpp"
 #include "Gamepad.hpp"
+#include "APU.hpp"
 
 namespace GBCEmu {
 class IO : public BusRWInterface {
 public:
-    IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd, Gamepad& gamepad);
+    IO(Timer& timer, Interrupt& interrupt, DMA& dma, LCD& lcd, Gamepad& gamepad, APU& apu);
     ~IO();
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t val);
@@ -21,6 +22,7 @@ protected:
     DMA& dma_;
     LCD& lcd_;
     Gamepad& gamepad_;
-    char serialData[2];
+    APU& apu_;
+    char serialData[2] = {-128, -128};
 };
 }

@@ -1,4 +1,5 @@
 // src/main.cpp
+#define SDL_MAIN_HANDLED
 #include <iostream>
 #include "Emulator.hpp"
 

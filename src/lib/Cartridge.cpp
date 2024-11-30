@@ -243,7 +243,7 @@ void Cartridge::mbc1Write(uint16_t addr, uint8_t val)
         ramBankValue_ = val & 0b11;
         if (ramBanking_) {
             if (needSave_) {
-                saveByBattery();
+                // saveByBattery();
             }
             std::cout << "switching rambank to " << (int)val << "\n";
         }
@@ -263,7 +263,6 @@ void Cartridge::mbc1Write(uint16_t addr, uint8_t val)
         ramBank_[addr - 0xA000 + ramBankValue_ * 0x2000] = val;
 
         if (battery_) {
-            std::cout << "need save..." << std::endl;
             needSave_ = true;
         }
     }
@@ -302,7 +301,6 @@ void Cartridge::mbc2Write(uint16_t addr, uint8_t val)
         std::cout << "rw..." << std::endl;
         ramBank_[(addr - 0xA000) % 512] = val & 0xF;
         if (battery_) {
-            std::cout << "need save..." << std::endl;
             needSave_ = true;
         }
     }
@@ -314,7 +312,7 @@ uint8_t Cartridge::mbc3Read(uint16_t addr)
         return romBankX_[addr - 0x4000];
     }
     if (addr >= 0xA000 && addr <= 0xBFFF) {
-        if (ramBankValue_ < 0x03) { // RAM Bank Mapping
+        if (ramBankValue_ <= 0x03) { // RAM Bank Mapping
             if (ramBank_ != nullptr) {
                 if (!ramEnabled_) {
                     return 0xFF;
@@ -336,7 +334,7 @@ void Cartridge::mbc3Write(uint16_t addr, uint8_t val)
         return;
     }
     if (addr >= 0x2000 && addr <= 0x3FFF) {
-        val &= 0x7F;
+        val &= 0xFF;
         romBankValue_ = val == 0 ? 1 : val;
         romBankX_ = romData_.data() + (0x4000 * romBankValue_);
         return;
@@ -362,7 +360,6 @@ void Cartridge::mbc3Write(uint16_t addr, uint8_t val)
                 }
                 ramBank_[addr - 0xA000 + ramBankValue_ * 0x2000] = val;
                 if (battery_) {
-                    std::cout << "need save..." << std::endl;
                     needSave_ = true;
                 }
                 return;

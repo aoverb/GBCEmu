@@ -5,6 +5,7 @@
 #include <vector>
 #include <SDL.h>
 #include "UI.hpp"
+#include "APU.hpp"
 #include "CPU.hpp"
 #include "Bus.hpp"
 #include "RAM.hpp"
@@ -47,6 +48,7 @@ protected:
     Cartridge cartridge_;
     Gamepad gamepad_;
     RTC rtc_;
+    APU apu_;
     // SDL2 相关成员
     ::SDL_Window* window_;
     ::SDL_Renderer* renderer_;

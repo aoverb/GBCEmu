@@ -73,6 +73,10 @@ public:
     virtual void busWrite(uint16_t addr, uint8_t value) final;
     uint32_t getCurrentFrame();
     uint32_t* getVideoBuffer();
+    int getFPS()
+    {
+        return fps_;
+    }
 protected:
     OAM oam_[OAM_LENGTH];
     uint8_t vram_[0x2000];
@@ -93,6 +97,7 @@ protected:
     void loadLineSprites();
     Color fetchSpritePixels(uint8_t bit, Color color, uint8_t bgColor);
 
+    uint8_t fps_ = 0;
     uint32_t currentFrame_;
     uint32_t lineTicks_;
     uint32_t* videoBuffer_;

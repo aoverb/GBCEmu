@@ -3,7 +3,10 @@
 namespace GBCEmu {
     Timer::Timer(Interrupt& interrupt) : interrupt_(interrupt)
     {
-        div_ = 0xABFF;
+        div_ = 0xAC00;
+        tima_ = 0;
+        tma_ = 0;
+        tac_ = 0xF8;
     }
 
     Timer::~Timer()
@@ -32,11 +35,12 @@ namespace GBCEmu {
         }
 
         if (isTimerUpdated && (tac_ & (1 << 2))) {
-            ++tima_;
-
+            // std::cout << "timer, tima_" << (int)tima_ << std::endl;
             if (tima_ == 0xFF) {
-                tima_ = tma_;
                 interrupt_.requestInterrupt(InterruptType::TIMER);
+                tima_ = tma_;
+            } else {
+                ++tima_;
             }
         }
     }
@@ -68,8 +72,12 @@ namespace GBCEmu {
                 tma_ = val;
                 return;
             case 0xFF07:
-                tac_ = val;
+                tac_ = 0xF8 | (val & 0x07);
                 return;
         }
+    }
+    uint8_t Timer::getDiv()
+    {
+        return static_cast<uint8_t>(div_ >> 8);
     }
 }

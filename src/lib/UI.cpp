@@ -1,5 +1,5 @@
 #include "UI.hpp"
-
+#include "sstream"
 namespace GBCEmu {
     UI::UI(EmuContext& context, Bus& bus, PPU& ppu, Gamepad& gamepad) : context_(context), bus_(bus), ppu_(ppu), gamepad_(gamepad)
     {
@@ -80,6 +80,9 @@ namespace GBCEmu {
 
     void UI::updateEmuWindow()
     {
+        std::stringstream ss;
+        ss << "FPS: " << context_.fps;
+        SDL_SetWindowTitle(sdlWindow_, ss.str().c_str());
         SDL_Rect rc;
         rc.x = rc.y = 0;
         rc.w = 2048;
