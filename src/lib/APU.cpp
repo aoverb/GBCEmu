@@ -99,7 +99,7 @@ bool APU::initAudioRes()
 
     mutex = SDL_CreateMutex();
 
-    const char* deviceName = SDL_GetAudioDeviceName(3, 0);
+    const char* deviceName = SDL_GetAudioDeviceName(4, 0);
     dev_ = SDL_OpenAudioDevice(deviceName, 0, &spec, &spec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
     if (dev_ == 0) {
         SDL_Log("Failed to open audio: %s", SDL_GetError());
@@ -183,7 +183,23 @@ void APU::tick(Timer& timer)
         sampleL *= (static_cast<float>(lVolume())) / 7.0f;
         sampleR *= (static_cast<float>(rVolume())) / 7.0f;
 
-        
+        // 简单的一阶高通滤波器
+        static float prevInputL = 0.0f;
+        static float prevOutputL = 0.0f;
+        static float prevInputR = 0.0f;
+        static float prevOutputR = 0.0f;
+
+        // 调整alpha值以适应Game Boy音频特性
+        const float alpha = 0.999f;
+
+        float filteredL = alpha * (prevOutputL + sampleL - prevInputL);
+        float filteredR = alpha * (prevOutputR + sampleR - prevInputR);
+
+        prevInputL = sampleL;
+        prevOutputL = filteredL;
+        prevInputR = sampleR;
+        prevOutputR = filteredR;
+
         SDL_LockMutex(mutex);
         if (audioBufferL.size() > 65535) {
             audioBufferL.pop_front();
@@ -191,8 +207,8 @@ void APU::tick(Timer& timer)
         if (audioBufferR.size() > 65535) {
             audioBufferR.pop_front();
         }
-        audioBufferL.push_back(sampleL);
-        audioBufferR.push_back(sampleR);
+        audioBufferL.push_back(filteredL);
+        audioBufferR.push_back(filteredR);
         
         SDL_UnlockMutex(mutex);
     }

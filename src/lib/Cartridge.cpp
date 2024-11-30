@@ -242,9 +242,6 @@ void Cartridge::mbc1Write(uint16_t addr, uint8_t val)
     if ((addr & 0xE000) == 0x4000) { // RAM bank number
         ramBankValue_ = val & 0b11;
         if (ramBanking_) {
-            if (needSave_) {
-                // saveByBattery();
-            }
             std::cout << "switching rambank to " << (int)val << "\n";
         }
     }
@@ -264,6 +261,7 @@ void Cartridge::mbc1Write(uint16_t addr, uint8_t val)
 
         if (battery_) {
             needSave_ = true;
+            saveByBattery();
         }
     }
 }

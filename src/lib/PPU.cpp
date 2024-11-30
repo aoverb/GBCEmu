@@ -412,7 +412,9 @@ namespace GBCEmu {
                     uint32_t fps = frameCount_;
                     startTimer_ = end;
                     frameCount_ = 0;
-
+                    if (cart_.needSave()) {
+                        cart_.saveByBattery();
+                    }
                     fps_ = fps;
                 }
 
