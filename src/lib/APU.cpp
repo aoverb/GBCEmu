@@ -536,8 +536,7 @@ void APU::tickCH1Envelope()
         if (ch1EnvelopeIterCounter_ >= ch1EnvelopeIterPace_)
         {
             if (ch1EnvelopeDecay())
-            {
-                
+            {    
                 if (ch1Volume_ > 0) {
                     --ch1Volume_;
                 }
@@ -674,7 +673,7 @@ float filter(float input, float& state, float cutoff)
     return state;
 }
 
-void APU::tickCH1()
+void APU:: tickCH1()
 {
     if (!ch1DACOn()) {
         disableCH1();
