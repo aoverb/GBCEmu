@@ -105,7 +105,7 @@ protected:
         return (NR11DutyCycleLenTimer_ & 0xC0) >> 6;
     }
 
-   inline uint8_t ch1EnvelopePace() const
+    inline uint8_t ch1EnvelopePace() const
     {
         return NR12VolumeEnvelope_ & 0x07;
     }

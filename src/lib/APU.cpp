@@ -69,8 +69,8 @@ static void SDLCALL playbackCallback(void* userdata, uint8_t* stream, int len)
         double deltaTime = static_cast<double>(i) / static_cast<double>(spec.freq);
         uint32_t numSamples = static_cast<uint32_t>(deltaTime * 1048576.0);
         numSamples = std::min(numSamples, static_cast<uint32_t>(audioBufferL.size()));
-        audioBufferL.erase(audioBufferL.begin(), audioBufferL.begin() + i);
-        audioBufferR.erase(audioBufferR.begin(), audioBufferR.begin() + i);
+        audioBufferL.erase(audioBufferL.begin(), audioBufferL.begin() + numSamples);
+        audioBufferR.erase(audioBufferR.begin(), audioBufferR.begin() + numSamples);
     }
     SDL_UnlockMutex(mutex);
     return;
@@ -91,15 +91,15 @@ APU::~APU()
 bool APU::initAudioRes()
 {
     SDL_zero(spec);
-    spec.freq = 48000;
+    spec.freq = 44100;
     spec.format = AUDIO_F32;
-    spec.samples = 2048;
+    spec.samples = 5000;
     spec.channels = 2;
     spec.callback = playbackCallback;
 
     mutex = SDL_CreateMutex();
 
-    const char* deviceName = SDL_GetAudioDeviceName(4, 0);
+    const char* deviceName = SDL_GetAudioDeviceName(3, 0);
     dev_ = SDL_OpenAudioDevice(deviceName, 0, &spec, &spec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
     if (dev_ == 0) {
         SDL_Log("Failed to open audio: %s", SDL_GetError());
@@ -201,10 +201,10 @@ void APU::tick(Timer& timer)
         prevOutputR = filteredR;
 
         SDL_LockMutex(mutex);
-        if (audioBufferL.size() > 65535) {
+        if (audioBufferL.size() > 131072) {
             audioBufferL.pop_front();
         }
-        if (audioBufferR.size() > 65535) {
+        if (audioBufferR.size() > 131072) {
             audioBufferR.pop_front();
         }
         audioBufferL.push_back(filteredL);
@@ -242,6 +242,9 @@ void APU::tickDivAPU(Timer& timer)
 
 uint8_t APU::busRead(uint16_t addr)
 {
+    if (addr >= 0xFF30 && addr <= 0xFF3F) {
+        return waveRam_[addr - 0xFF30];
+    }
     if (addr == 0xFF10) {
         return NR10Sweep_;
     }
@@ -290,7 +293,7 @@ uint8_t APU::busRead(uint16_t addr)
         return NR44Control_ & 0x40;
     }
     // NR23 Write only...
-    if (addr == 0xFF24) {
+    if (addr == 0xFF19) {
         return NR24PeriodHighControl_ & 0x40; // all bits except 6th bit write-only...
     }
 
@@ -302,10 +305,6 @@ uint8_t APU::busRead(uint16_t addr)
     }
     if (addr == 0xFF26) {
         return NR52Control_;
-    }
-
-    if (addr >= 0xFF30 && addr <= 0xFF3F) {
-        return waveRam_[addr - 0xFF30];
     }
     return 0xFF;
 }
@@ -376,14 +375,8 @@ void APU::busWrite(uint16_t addr, uint8_t value)
         if (addr == 0xFF11) {
             NR11DutyCycleLenTimer_ = value;
         }
-        if (addr == 0xFF12) {
-            NR12VolumeEnvelope_ = value;
-        }
         if (addr == 0xFF13) {
             NR13PeriodLow_ = value;
-        }
-        if (addr == 0xFF14) {
-            NR14PeriodHighControl_ = value;
         }
         if (addr == 0xFF16) {
             NR21DutyCycleLenTimer_ = value;
@@ -403,9 +396,6 @@ void APU::busWrite(uint16_t addr, uint8_t value)
             }
             NR44Control_ = value;
         }
-        if (addr == 0xFF24) {
-            NR50Mixer_ = value;
-        }
         if (addr == 0xFF25) {
             NR51Panning_ = value;
         }
@@ -423,7 +413,9 @@ void APU::busWrite(uint16_t addr, uint8_t value)
             NR31LenTimer_ = value;
         }
     }
-
+    if (addr >= 0xFF30 && addr <= 0xFF3F) {
+        waveRam_[addr - 0xFF30] = value;
+    }
     if (addr == 0xFF26) {
         
         bool prevEnabled = isEnabled();
@@ -431,10 +423,6 @@ void APU::busWrite(uint16_t addr, uint8_t value)
         if (prevEnabled && !isEnabled()) {
             disable();
         }
-    }
-
-    if (addr >= 0xFF30 && addr <= 0xFF3F) {
-        waveRam_[addr - 0xFF30] = value;
     }
     return;
 }
@@ -549,6 +537,7 @@ void APU::tickCH1Envelope()
         {
             if (ch1EnvelopeDecay())
             {
+                
                 if (ch1Volume_ > 0) {
                     --ch1Volume_;
                 }
